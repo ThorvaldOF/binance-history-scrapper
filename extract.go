@@ -55,6 +55,7 @@ func extractFile(currentCrypto cryptoFile, cp *cryptoProcess, intervalCounter *i
 			cp.handle(csvWriter.Write(record), "Error writing CSV record to target file "+path)
 		}
 	}
+	cp.rc <- nil
 }
 
 func skipLine(count *int) bool {
