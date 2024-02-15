@@ -37,14 +37,12 @@ pub fn merge_files(settings: &Settings) -> Result<bool, std::io::Error> {
         let mut csv_reader = ReaderBuilder::new().has_headers(false).from_reader(input_file);
         for result in csv_reader.records() {
             let record = result?;
-            let test:Vec<&str>  = record.iter().collect();
+            let collected_record:Vec<&str>  = record.iter().collect();
 
             let mut processed_record:StringRecord = StringRecord::new();
-            processed_record.push_field(test[1]);
-            processed_record.push_field(test[2]);
-            processed_record.push_field(test[3]);
-            processed_record.push_field(test[4]);
-            processed_record.push_field(test[5]);
+            for i in 1..=5{
+                processed_record.push_field(collected_record[i]);
+            }
 
             csv_writer.write_record(processed_record.iter())?;
         }
