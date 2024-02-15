@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use csv::{ReaderBuilder, WriterBuilder};
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use crate::input::Settings;
 use crate::extract::EXTRACTS_PATH;
 
@@ -32,14 +32,21 @@ pub fn merge_files(settings: &Settings) -> Result<bool, std::io::Error> {
     for file_name in csv_files {
         let input_path = Path::new(&source_dir).join(file_name);
 
-        let mut input_file = File::open(&input_path)?;
-        let mut buffer = String::new();
-        input_file.read_to_string(&mut buffer)?;
+        let  input_file = File::open(&input_path)?;
 
-        let mut csv_reader = ReaderBuilder::new().from_reader(buffer.as_bytes());
+        let mut csv_reader = ReaderBuilder::new().has_headers(false).from_reader(input_file);
         for result in csv_reader.records() {
             let record = result?;
-            csv_writer.write_record(record.iter())?;
+            let test:Vec<&str>  = record.iter().collect();
+
+            let mut processed_record:StringRecord = StringRecord::new();
+            processed_record.push_field(test[1]);
+            processed_record.push_field(test[2]);
+            processed_record.push_field(test[3]);
+            processed_record.push_field(test[4]);
+            processed_record.push_field(test[5]);
+
+            csv_writer.write_record(processed_record.iter())?;
         }
         if settings.clear_extracts {
             fs::remove_file(input_path)?;
