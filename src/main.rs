@@ -15,6 +15,20 @@ const STABLE_COIN: &str = "USDT";
 
 fn main() {
     let settings = input::process_input();
+
+    for asset in settings.assets {
+        process(&asset, &settings.granularity, settings.clear_cache);
+    }
+    if settings.clear_cache {
+        fs::remove_dir_all(format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)).expect("Couldn't clear downloads directory");
+    }
+    println!("Scrapping completed, you can find your output in 'results' directory");
+    println!("Press enter to quit...");
+    let mut useless_input = String::new();
+    io::stdin().read_line(&mut useless_input).expect("Couldn't retrieve your input, please try again");
+}
+
+fn process(asset: &str, granularity: &str, clear_cache: bool) {
     let today = Local::now();
     'process: for year in (BINANCE_BIRTH..today.year()).rev() {
         let mut max_month = 12;
@@ -26,13 +40,13 @@ fn main() {
             if month < 10 {
                 month_prefix = "0";
             }
-            let display_name = format!("[{} {} -> {}/{}]", settings.symbol, settings.granularity, month, year);
+            let display_name = format!("[{}{} {} -> {}/{}]", asset, STABLE_COIN, granularity, month, year);
             println!("Processing {} ", display_name);
-            let file_name = format!("{}-{}-{}-{}{}", settings.symbol, settings.granularity, year, month_prefix, month);
+            let file_name = format!("{}{}-{}-{}-{}{}", asset, STABLE_COIN, granularity, year, month_prefix, month);
 
-            match download_file(&settings, &file_name) {
+            match download_file(&asset, &granularity, &file_name) {
                 Ok(false) => {
-                    println!("Download of [{}] finished, no data available before {}/{} (included)", settings.asset, month, year);
+                    println!("Download of [{}] finished, no data available before {}/{} (included)", asset, month, year);
                     break 'process;
                 }
                 Err(err) => {
@@ -41,7 +55,7 @@ fn main() {
                 }
                 Ok(true) => {}
             }
-            match extract_file(&settings, &file_name) {
+            match extract_file(&asset, &granularity, clear_cache, &file_name) {
                 Err(err) => {
                     println!("An error occurred while extracting {}, details: {}", display_name, err);
                     break 'process;
@@ -50,11 +64,4 @@ fn main() {
             }
         }
     }
-    if settings.clear_cache {
-        fs::remove_dir_all(format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)).expect("Couldn't clear downloads directory");
-    }
-    println!("Scrapping completed, you can find your output in 'results' directory");
-    println!("Press enter to quit...");
-    let mut useless_input = String::new();
-    io::stdin().read_line(&mut useless_input).expect("Couldn't retrieve your input, please try again");
 }

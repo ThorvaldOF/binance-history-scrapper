@@ -1,12 +1,12 @@
 use std::{io};
+use serde_json::Value;
 use crate::STABLE_COIN;
 
 const GRANULARITIES: [&str; 13] = ["1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d"];
 
 pub struct Settings {
     pub granularity: String,
-    pub asset: String,
-    pub symbol: String,
+    pub assets: Vec<String>,
     pub clear_cache: bool,
 }
 
@@ -18,18 +18,15 @@ pub fn process_input() -> Settings {
     println!("Leave blank for default value: 1s");
     let granularity = get_granularity();
 
-    //TODO: All available cryptocurrencies
-    println!("Type the cryptocurrency (asset) you want to scrap, BTC for example");
-    let asset = get_asset();
+    println!("Type the asset you want to scrap, BTC for example. Type EVERYTHING to crap all available assets");
+    let assets = get_asset();
 
     println!("Do you want to clear the [downloads] directory when unused? (yes/no)");
     let clear_cache = get_clear_cache();
 
-    let symbol = format!("{}{}", asset, STABLE_COIN);
     Settings {
         granularity,
-        asset,
-        symbol,
+        assets,
         clear_cache,
     }
 }
@@ -50,15 +47,30 @@ fn get_granularity() -> String {
     }
 }
 
-fn get_asset() -> String {
+fn get_asset() -> Vec<String> {
+    let mut assets: Vec<String> = Vec::new();
     loop {
         let mut input: String = String::new();
         io::stdin().read_line(&mut input).expect("Couldn't retrieve your input, please try again");
+        format_asset(&mut input);
+        if input == "EVERYTHING" {
+            match get_all_assets() {
+                Some(all_assets) => {
+                    println!("Okay, we will processing all available assets on Binance, here is the list: {:?}", all_assets);
+                    return all_assets;
+                }
+                None => {
+                    println!("An error occured while fetching all available assets");
+                    continue;
+                }
+            }
+        }
         let result = check_symbol(input);
         match result {
             Some(asset) => {
                 println!("Input valid, asset set to [{}]", asset);
-                return asset;
+                assets.push(asset);
+                return assets;
             }
             None => {
                 println!("This asset doesn't exist, please enter a valid one");
@@ -90,8 +102,7 @@ fn get_clear_cache() -> bool {
     }
 }
 
-fn check_symbol(mut asset: String) -> Option<String> {
-    format_asset(&mut asset);
+fn check_symbol(asset: String) -> Option<String> {
     if asset.is_empty() {
         return None;
     }
@@ -107,6 +118,29 @@ fn check_symbol(mut asset: String) -> Option<String> {
         }
     }
     None
+}
+
+fn get_all_assets() -> Option<Vec<String>> {
+    let response = ureq::get("https://api.binance.com/api/v3/exchangeInfo").call().ok()?;
+    if response.status() != 200 {
+        return None;
+    }
+    let payload = response.into_string().ok()?;
+
+    let parsed_data: Value = serde_json::from_str(&payload).ok()?;
+
+    let symbols_array = parsed_data.get("symbols")?.as_array()?;
+
+    let mut asset_pairs: Vec<String> = Vec::new();
+    for symbol in symbols_array {
+        let quote_asset = symbol.get("quoteAsset")?.as_str()?.to_string();
+        if quote_asset == STABLE_COIN {
+            let base_asset = symbol.get("baseAsset")?.as_str()?.to_string();
+            asset_pairs.push(base_asset);
+        }
+    }
+
+    Some(asset_pairs)
 }
 
 fn format_asset(input: &mut String) {

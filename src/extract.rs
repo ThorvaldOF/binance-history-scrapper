@@ -3,15 +3,14 @@ use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::download::DOWNLOADS_PATH;
-use crate::input::Settings;
-use crate::LOCAL_PATH;
+use crate::{LOCAL_PATH, STABLE_COIN};
 
 const RESULTS_PATH: &str = "results/";
 
-pub fn extract_file(settings: &Settings, file_name: &str) -> Result<bool, std::io::Error> {
-    let file_directory = format!("{}{}{}/{}/", LOCAL_PATH, RESULTS_PATH, settings.symbol, settings.granularity);
+pub fn extract_file(asset: &str, granularity: &str, clear_cache: bool, file_name: &str) -> Result<bool, std::io::Error> {
+    let file_directory = format!("{}{}{}{}/{}/", LOCAL_PATH, RESULTS_PATH, asset, STABLE_COIN, granularity);
 
-    let source_path = format!("{}{}{}/{}/{}.zip", LOCAL_PATH, DOWNLOADS_PATH, settings.symbol, settings.granularity, file_name);
+    let source_path = format!("{}{}{}{}/{}/{}.zip", LOCAL_PATH, DOWNLOADS_PATH, asset, STABLE_COIN, granularity, file_name);
     let source_file = File::open(source_path.clone())?;
 
     let mut archive = ZipArchive::new(source_file)?;
@@ -45,7 +44,7 @@ pub fn extract_file(settings: &Settings, file_name: &str) -> Result<bool, std::i
 
         csv_writer.write_record(processed_record.iter())?;
     }
-    if settings.clear_cache {
+    if clear_cache {
         remove_file(source_path)?;
     }
     Ok(true)

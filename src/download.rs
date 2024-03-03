@@ -1,17 +1,15 @@
-use crate::input::Settings;
 use std::fs::{File, create_dir_all, metadata};
 use std::io::copy;
-use crate::LOCAL_PATH;
+use crate::{LOCAL_PATH, STABLE_COIN};
 
 pub const DOWNLOADS_PATH: &str = "downloads/";
 
-//TODO: Optimize, refactor and better error management
-pub fn download_file(settings: &Settings, file_name: &str) -> Result<bool, std::io::Error> {
-    let file_directory = format!("{}{}{}/{}/", LOCAL_PATH, DOWNLOADS_PATH, settings.symbol, settings.granularity);
+pub fn download_file(asset: &str, granularity: &str, file_name: &str) -> Result<bool, std::io::Error> {
+    let file_directory = format!("{}{}{}{}/{}/", LOCAL_PATH, DOWNLOADS_PATH, asset, STABLE_COIN, granularity);
     if metadata(format!("{}{}.zip", file_directory, file_name)).is_ok() {
         return Ok(true);
     }
-    let url = format!("https://data.binance.vision/data/spot/monthly/klines/{}/{}/{}.zip", settings.symbol, settings.granularity, file_name);
+    let url = format!("https://data.binance.vision/data/spot/monthly/klines/{}{}/{}/{}.zip", asset, STABLE_COIN, granularity, file_name);
 
     create_dir_all(file_directory.clone())?;
 
