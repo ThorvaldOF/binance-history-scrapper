@@ -24,7 +24,6 @@ pub fn extract_file(asset: &str, granularity: &str, clear_cache: bool, file_name
     let output_file_path = format!("{}{}.csv", file_directory, file_name);
     let output_file = File::create(&output_file_path)?;
 
-
     let mut csv_content = String::new();
     entry.read_to_string(&mut csv_content)?;
 
