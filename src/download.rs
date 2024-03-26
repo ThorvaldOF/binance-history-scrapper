@@ -19,7 +19,7 @@ pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
     download(&asset_file, ".zip")?;
     download(&asset_file, ".zip.CHECKSUM")?;
 
-    Ok(true)
+    check_integrity(&file_path)
 }
 
 fn download(asset_file: &AssetFile, extension: &str) -> Result<bool, std::io::Error> {
