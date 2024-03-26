@@ -4,13 +4,14 @@ use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::download::DOWNLOADS_PATH;
 use crate::{LOCAL_PATH, STABLE_COIN};
+use crate::asset_file::AssetFile;
 
-const RESULTS_PATH: &str = "results/";
+pub(crate) const RESULTS_PATH: &str = "results/";
 
-pub fn extract_file(asset: &str, granularity: &str, clear_cache: bool, file_name: &str) -> Result<bool, std::io::Error> {
-    let file_directory = format!("{}{}{}{}/{}/", LOCAL_PATH, RESULTS_PATH, asset, STABLE_COIN, granularity);
+pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, std::io::Error> {
+    let file_directory = asset_file.get_extract_directory();
 
-    let source_path = format!("{}{}{}{}/{}/{}.zip", LOCAL_PATH, DOWNLOADS_PATH, asset, STABLE_COIN, granularity, file_name);
+    let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
     let source_file = File::open(source_path.clone())?;
 
     let mut archive = ZipArchive::new(source_file)?;
@@ -21,7 +22,7 @@ pub fn extract_file(asset: &str, granularity: &str, clear_cache: bool, file_name
     create_dir_all(file_directory.clone())?;
 
     let mut entry = archive.by_index(0)?;
-    let output_file_path = format!("{}{}.csv", file_directory, file_name);
+    let output_file_path = file_directory + &asset_file.get_full_file_name(".csv");
     let output_file = File::create(&output_file_path)?;
 
     let mut csv_content = String::new();

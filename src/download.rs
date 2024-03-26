@@ -2,13 +2,14 @@ use std::fs::{File, create_dir_all, metadata, read_to_string, remove_file};
 use std::io::{BufReader, copy, Read};
 use crate::{LOCAL_PATH, STABLE_COIN};
 use sha2::{Sha256, Digest};
+use crate::asset_file::AssetFile;
 
 pub const DOWNLOADS_PATH: &str = "downloads/";
 
-pub fn download_file(asset: &str, granularity: &str, file_name: &str) -> Result<bool, std::io::Error> {
-    let file_directory = format!("{}{}{}{}/{}/", LOCAL_PATH, DOWNLOADS_PATH, asset, STABLE_COIN, granularity);
-    let file_full_name = format!("{}.zip", file_name);
-    let file_path = &format!("{}{}", &file_directory, &file_full_name);
+pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
+    let file_directory = asset_file.get_download_directory();
+    let file_full_name = asset_file.get_full_file_name(".zip");
+    let file_path = file_directory.clone()1m + &file_full_name;
     //TODO: all formatting in a struct and implementation
     if check_integrity(&file_path).is_ok() {
         return Ok(true);
@@ -16,13 +17,12 @@ pub fn download_file(asset: &str, granularity: &str, file_name: &str) -> Result<
     if metadata(&file_path).is_ok() {
         remove_file(&file_path)?;
     }
-    if metadata(&format!("{}.CHECKSUM", file_path)).is_ok() {
-        remove_file(&format!("{}.CHECKSUM", file_path))?;
+    if metadata(file_path.clone() + ".CHECKSUM").is_ok() {
+        remove_file(file_path + ".CHECKSUM")?;
     }
 
-    let url = format!("https://data.binance.vision/data/spot/monthly/klines/{}{}/{}/{}", asset, STABLE_COIN, granularity, &file_full_name);
-    download(&file_directory, &file_full_name, &url)?;
-    download(&file_directory, &format!("{}{}", &file_full_name, ".CHECKSUM"), &format!("{}{}", url, ".CHECKSUM"))?;
+    download(&file_directory.clone(), &file_full_name, &asset_file.get_download_url(""))?;
+    download(&file_directory, &asset_file.get_full_file_name(".zip.CHECKSUM"), &asset_file.get_download_url(".CHECKSUM"))?;
 
     Ok(true)
 }

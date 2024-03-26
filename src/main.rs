@@ -1,6 +1,7 @@
 mod input;
 mod download;
 mod extract;
+mod asset_file;
 
 use std::{fs, io};
 use chrono::Datelike;
@@ -36,15 +37,12 @@ fn process(asset: &str, granularity: &str, clear_cache: bool) {
             max_month = today.month();
         }
         for month in (1..=max_month).rev() {
-            let mut month_prefix = "";
-            if month < 10 {
-                month_prefix = "0";
-            }
-            let display_name = format!("[{}{} {} -> {}/{}]", asset, STABLE_COIN, granularity, month, year);
+            let asset_file = asset_file::AssetFile::new(asset, granularity, year, month);
+            let display_name = asset_file.get_display_name();
             println!("Processing {} ", display_name);
-            let file_name = format!("{}{}-{}-{}-{}{}", asset, STABLE_COIN, granularity, year, month_prefix, month);
+            let file_name = asset_file.get_file_name();
 
-            match download_file(&asset, &granularity, &file_name) {
+            match download_file(&asset_file) {
                 Ok(false) => {
                     println!("Download of [{}] finished, no data available before {}/{} (included)", asset, month, year);
                     break 'process;
@@ -55,7 +53,7 @@ fn process(asset: &str, granularity: &str, clear_cache: bool) {
                 }
                 Ok(true) => {}
             }
-            match extract_file(&asset, &granularity, clear_cache, &file_name) {
+            match extract_file(&asset_file, clear_cache) {
                 Err(err) => {
                     println!("An error occurred while extracting {}, details: {}", display_name, err);
                     break 'process;
