@@ -13,7 +13,7 @@ pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
         remove_file(&file_path)?;
     }
     if metadata(file_path.clone() + ".CHECKSUM").is_ok() {
-        remove_file(file_path + ".CHECKSUM")?;
+        remove_file(file_path.clone() + ".CHECKSUM")?;
     }
 
     download(&asset_file, ".zip")?;
