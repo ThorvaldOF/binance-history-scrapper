@@ -7,7 +7,7 @@ const RESULTS_PATH: &str = "results/";
 pub struct AssetFile {
     asset: String,
     granularity: String,
-    year: i32,
+    year: u32,
     month: u32,
     month_prefix: String,
 }
@@ -20,7 +20,7 @@ impl AssetFile {
             String::new()
         };
 
-        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year, month, month_prefix }
+        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix }
     }
 
     pub fn get_display_name(&self) -> String {
@@ -46,7 +46,7 @@ impl AssetFile {
         format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)
     }
 
-    pub fn get_time(&self) -> (u32, i32) {
+    pub fn get_time(&self) -> (u32, u32) {
         (self.month, self.year)
     }
 

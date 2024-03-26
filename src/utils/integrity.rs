@@ -1,8 +1,9 @@
 use std::fs::{File, metadata, read_to_string};
 use std::io::Read;
+use csv::ReaderBuilder;
 use sha2::{Digest, Sha256};
 
-pub fn check_integrity(file_path: &str) -> Result<bool, std::io::Error> {
+pub fn check_zip_integrity(file_path: &str) -> Result<bool, std::io::Error> {
     let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
     if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
         return Ok(false);
@@ -50,7 +51,24 @@ fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
     Ok(checksum)
 }
 
-pub fn get_minutes_in_month(month: u32, year: i32) -> Option<usize> {
+pub fn check_csv_integrity(file_path: &str, time: (u32, u32)) -> Result<bool, std::io::Error> {
+    if metadata(file_path).is_err() {
+        return Ok(false);
+    }
+    let file = File::open(file_path)?;
+    let mut csv_reader = ReaderBuilder::new().has_headers(false).from_reader(file);
+
+    let expected_count = match get_minutes_in_month(time.0, time.1) {
+        Some(val) => val,
+        None => return Ok(false)
+    };
+    if expected_count != csv_reader.records().count() {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+pub fn get_minutes_in_month(month: u32, year: u32) -> Option<usize> {
     let days = match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
