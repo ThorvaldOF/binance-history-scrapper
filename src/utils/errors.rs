@@ -1,5 +1,4 @@
 use std::{fmt, io};
-use std::fmt::write;
 
 pub enum ScrapperError {
     IOError(io::Error),

@@ -83,21 +83,17 @@ fn process(process: ProcessData) {
 
             match download_file(&asset_file) {
                 Ok(_) => {}
-                Err(err) => {
-                    match err {
-                        ScrapperError::IOError(error) => {
-                            println!("An error occured while downloading {}, details: {}", display_name, error);
-                            break 'process;
-                        }
-                        _ => {
-                            if first_iter {
-                                println!("No data available for [{}] finished", &process.asset);
-                            } else {
-                                println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
-                            }
-                            break 'process;
-                        }
+                Err(ScrapperError::NoOnlineData) => {
+                    if first_iter {
+                        println!("No data available for [{}] finished", &process.asset);
+                    } else {
+                        println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
                     }
+                    break 'process;
+                }
+                Err(err) => {
+                    println!("An error occured while downloading {}, details: {}", display_name, err);
+                    break 'process;
                 }
             }
             match extract_file(&asset_file, process.clear_cache) {
