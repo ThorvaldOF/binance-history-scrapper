@@ -29,7 +29,7 @@ fn download(asset_file: &AssetFile, extension: &str) -> Result<(), ScrapperError
     let response = ureq::get(&asset_file.get_download_url(extension)).call();
 
     if !response.is_ok() {
-        return Err(ScrapperError::NoOnlineData());
+        return Err(ScrapperError::NoOnlineData);
     }
 
     create_dir_all(&asset_file.get_download_directory())?;

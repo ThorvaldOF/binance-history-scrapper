@@ -1,28 +1,26 @@
 use std::fs::{File, metadata, read_to_string};
 use std::io::Read;
-use std::path::Path;
 use csv::ReaderBuilder;
 use sha2::{Digest, Sha256};
+use crate::ScrapperError;
 
-pub fn check_zip_integrity(file_path: &str) -> Result<(), std::io::Error> {
+pub fn check_zip_integrity(file_path: &str) -> Result<(), ScrapperError> {
     let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
     if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
-        return Ok(());
+        return Err(ScrapperError::IntegrityError);
     }
 
-    let expected_checksum = match read_to_string(&checksum_path) {
-        Ok(content) => {
-            let parts: Vec<&str> = content.split_whitespace().collect();
-            if let Some(expected_checksum) = parts.get(0).cloned() {
-                Some(expected_checksum.to_string())
-            } else {
-                None
-            }
+    let checksum_read = read_to_string(&checksum_path)?;
+    let checksum_content: Vec<&str> = checksum_read.split_whitespace().collect();
+    let expected_checksum = {
+        if let Some(expected_checksum) = checksum_content.get(0).cloned() {
+            expected_checksum.to_string()
+        } else {
+            return Err(ScrapperError::IntegrityError);
         }
-        Err(_) => None,
     };
 
-    if let Some(expected_checksum) = expected_checksum {
+    if let expected_checksum = expected_checksum {
         let actual_checksum = calculate_checksum(file_path)?;
 
         return if expected_checksum == actual_checksum {

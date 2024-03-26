@@ -1,10 +1,26 @@
-use std::io;
+use std::{fmt, io};
+use std::fmt::write;
 
 pub enum ScrapperError {
     IOError(io::Error),
-    IntegrityError(String),
-    NoOnlineData(),
-    OtherError(String),
+    ZipError(zip::result::ZipError),
+    CsvError(csv::Error),
+    IntegrityError,
+    NoOnlineData,
+    OtherError,
+}
+
+impl fmt::Display for ScrapperError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ScrapperError::IOError(e) => { write!(f, "TODO:Implement display") }
+            ScrapperError::ZipError(e) => { write!(f, "TODO:Implement display") }
+            ScrapperError::CsvError(e) => { write!(f, "TODO:Implement display") }
+            ScrapperError::IntegrityError => { write!(f, "TODO:Implement display") }
+            ScrapperError::NoOnlineData => { write!(f, "TODO:Implement display") }
+            ScrapperError::OtherError => { write!(f, "TODO:Implement display") }
+        }
+    }
 }
 
 impl From<io::Error> for ScrapperError {
@@ -13,14 +29,14 @@ impl From<io::Error> for ScrapperError {
     }
 }
 
-impl From<&str> for ScrapperError {
-    fn from(message: &str) -> Self {
-        ScrapperError::IntegrityError(message.to_string())
+impl From<zip::result::ZipError> for ScrapperError {
+    fn from(error: zip::result::ZipError) -> Self {
+        ScrapperError::ZipError(error)
     }
 }
 
-impl From<&str> for ScrapperError {
-    fn from(message: &str) -> Self {
-        ScrapperError::OtherError(message.to_string())
+impl From<csv::Error> for ScrapperError {
+    fn from(error: csv::Error) -> Self {
+        ScrapperError::CsvError(error)
     }
 }
