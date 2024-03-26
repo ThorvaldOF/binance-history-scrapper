@@ -6,13 +6,11 @@ mod asset_file;
 use std::{fs, io};
 use chrono::Datelike;
 use chrono::prelude::Local;
-use crate::download::{download_file, DOWNLOADS_PATH};
+use crate::asset_file::AssetFile;
+use crate::download::{download_file};
 use crate::extract::{extract_file};
 
 const BINANCE_BIRTH: i32 = 2017;
-const LOCAL_PATH: &str = "./binance_data/";
-
-const STABLE_COIN: &str = "USDT";
 
 fn main() {
     let settings = input::process_input();
@@ -21,7 +19,7 @@ fn main() {
         process(&asset, &settings.granularity, settings.clear_cache);
     }
     if settings.clear_cache {
-        fs::remove_dir_all(format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)).expect("Couldn't clear downloads directory");
+        fs::remove_dir_all(AssetFile::get_cache_directory()).expect("Couldn't clear downloads directory");
     }
     println!("Scrapping completed, you can find your output in 'results' directory");
     println!("Press enter to quit...");
@@ -37,10 +35,9 @@ fn process(asset: &str, granularity: &str, clear_cache: bool) {
             max_month = today.month();
         }
         for month in (1..=max_month).rev() {
-            let asset_file = asset_file::AssetFile::new(asset, granularity, year, month);
+            let asset_file = AssetFile::new(asset, granularity, year, month);
             let display_name = asset_file.get_display_name();
             println!("Processing {} ", display_name);
-            let file_name = asset_file.get_file_name();
 
             match download_file(&asset_file) {
                 Ok(false) => {

@@ -2,15 +2,10 @@ use std::fs::{File, create_dir_all, remove_file};
 use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
-use crate::download::DOWNLOADS_PATH;
-use crate::{LOCAL_PATH, STABLE_COIN};
 use crate::asset_file::AssetFile;
 
-pub(crate) const RESULTS_PATH: &str = "results/";
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, std::io::Error> {
-    let file_directory = asset_file.get_extract_directory();
-
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
     let source_file = File::open(source_path.clone())?;
 
@@ -19,10 +14,10 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, s
     if archive.len() != 1 {
         return Err(std::io::Error::new(std::io::ErrorKind::Other, "Invalid ZIP file structure"));
     }
-    create_dir_all(file_directory.clone())?;
+    create_dir_all(asset_file.get_extract_directory())?;
 
     let mut entry = archive.by_index(0)?;
-    let output_file_path = file_directory + &asset_file.get_full_file_name(".csv");
+    let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
     let output_file = File::create(&output_file_path)?;
 
     let mut csv_content = String::new();

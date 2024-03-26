@@ -1,6 +1,8 @@
-use std::fmt::format;
-use crate::{LOCAL_PATH, STABLE_COIN};
-use crate::download::DOWNLOADS_PATH;
+pub const STABLE_COIN: &str = "USDT";
+const LOCAL_PATH: &str = "./binance_data/";
+const DOWNLOADS_PATH: &str = "downloads/";
+const RESULTS_PATH: &str = "results/";
+
 
 pub struct AssetFile {
     asset: String,
@@ -22,23 +24,30 @@ impl AssetFile {
     }
 
     pub fn get_display_name(&self) -> String {
-        format!("[{}{} {} -> {}/{}]", self.asset, crate::STABLE_COIN, self.granularity, self.month, self.year)
+        format!("[{}{} {} -> {}/{}]", self.asset, STABLE_COIN, self.granularity, self.month, self.year)
     }
     pub fn get_file_name(&self) -> String {
         format!("{}{}-{}-{}-{}{}", self.asset, STABLE_COIN, self.granularity, self.year, self.month_prefix, self.month)
     }
     pub fn get_download_directory(&self) -> String {
-        format!("{}{}{}{}/{}/", LOCAL_PATH, DOWNLOADS_PATH, self.asset, STABLE_COIN, self.granularity)
+        self.get_local_directory(DOWNLOADS_PATH)
     }
     pub fn get_extract_directory(&self) -> String {
-        format!("{}{}{}{}/{}/", LOCAL_PATH, crate::extract::RESULTS_PATH, self.asset, STABLE_COIN, self.granularity)
+        self.get_local_directory(RESULTS_PATH)
     }
 
     pub fn get_full_file_name(&self, extension: &str) -> String {
         self.get_file_name() + extension
     }
-    pub fn get_download_url(&self, checksum: &str) -> String {
-        format!("https://data.binance.vision/data/spot/monthly/klines/{}{}/{}/{}{}", self.asset, STABLE_COIN, self.granularity, self.get_full_file_name(".zip"), checksum)
+    pub fn get_download_url(&self, extension: &str) -> String {
+        format!("https://data.binance.vision/data/spot/monthly/klines/{}{}/{}/{}", self.asset, STABLE_COIN, self.granularity, self.get_full_file_name(extension))
+    }
+    pub fn get_cache_directory() -> String {
+        format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)
+    }
+
+    fn get_local_directory(&self, directory: &str) -> String {
+        format!("{}{}{}{}/{}/", LOCAL_PATH, directory, self.asset, STABLE_COIN, self.granularity)
     }
 }
 

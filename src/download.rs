@@ -1,16 +1,11 @@
 use std::fs::{File, create_dir_all, metadata, read_to_string, remove_file};
-use std::io::{BufReader, copy, Read};
-use crate::{LOCAL_PATH, STABLE_COIN};
+use std::io::{copy, Read};
 use sha2::{Sha256, Digest};
 use crate::asset_file::AssetFile;
 
-pub const DOWNLOADS_PATH: &str = "downloads/";
-
 pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
-    let file_directory = asset_file.get_download_directory();
-    let file_full_name = asset_file.get_full_file_name(".zip");
-    let file_path = file_directory.clone()1m + &file_full_name;
-    //TODO: all formatting in a struct and implementation
+    let file_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
+
     if check_integrity(&file_path).is_ok() {
         return Ok(true);
     }
@@ -21,22 +16,22 @@ pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
         remove_file(file_path + ".CHECKSUM")?;
     }
 
-    download(&file_directory.clone(), &file_full_name, &asset_file.get_download_url(""))?;
-    download(&file_directory, &asset_file.get_full_file_name(".zip.CHECKSUM"), &asset_file.get_download_url(".CHECKSUM"))?;
+    download(&asset_file, ".zip")?;
+    download(&asset_file, ".zip.CHECKSUM")?;
 
     Ok(true)
 }
 
-fn download(file_directory: &str, file_name: &str, url: &str) -> Result<bool, std::io::Error> {
-    let response = ureq::get(&url).call();
+fn download(asset_file: &AssetFile, extension: &str) -> Result<bool, std::io::Error> {
+    let response = ureq::get(&asset_file.get_download_url(extension)).call();
 
     if !response.is_ok() {
         return Ok(false);
     }
 
-    create_dir_all(file_directory.clone())?;
+    create_dir_all(&asset_file.get_download_directory())?;
 
-    let mut file = File::create(format!("{}{}", file_directory, file_name))?;
+    let mut file = File::create(format!("{}{}", asset_file.get_download_directory(), asset_file.get_full_file_name(extension)))?;
 
     copy(&mut response.unwrap().into_reader(), &mut file)?;
     Ok(true)
