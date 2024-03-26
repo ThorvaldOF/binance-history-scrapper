@@ -68,6 +68,7 @@ fn process_worker(rx: Arc<Mutex<Receiver<ProcessData>>>) {
 
 fn process(process: ProcessData) {
     let today = Local::now();
+    let mut first_iter = true;
     'process: for year in (BINANCE_BIRTH..today.year()).rev() {
         let mut max_month = 12;
         if year == today.year() {
@@ -80,7 +81,11 @@ fn process(process: ProcessData) {
 
             match download_file(&asset_file) {
                 Ok(false) => {
-                    println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+                    if first_iter {
+                        println!("No data available for [{}] finished", &process.asset);
+                    } else {
+                        println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+                    }
                     break 'process;
                 }
                 Err(err) => {
@@ -95,6 +100,9 @@ fn process(process: ProcessData) {
                     break 'process;
                 }
                 _ => {}
+            }
+            if first_iter {
+                first_iter = false;
             }
         }
     }

@@ -1,13 +1,14 @@
 use std::fs::{File, create_dir_all, metadata, read_to_string, remove_file};
 use std::io::{copy, Read};
 use sha2::{Sha256, Digest};
-use crate::asset_file::AssetFile;
+use crate::asset_file::{AssetFile};
 
 pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
     let file_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
 
-    if check_integrity(&file_path).is_ok() {
-        return Ok(true);
+    match check_integrity(&file_path) {
+        Ok(true) => return Ok(true),
+        _ => {}
     }
     if metadata(&file_path).is_ok() {
         remove_file(&file_path)?;
@@ -39,10 +40,7 @@ fn download(asset_file: &AssetFile, extension: &str) -> Result<bool, std::io::Er
 
 fn check_integrity(file_path: &str) -> Result<bool, std::io::Error> {
     let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
-    let file_metadata = metadata(file_path)?;
-    let checksum_metadata = metadata(&checksum_path)?;
-
-    if !file_metadata.is_file() || !checksum_metadata.is_file() {
+    if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
         return Ok(false);
     }
 
