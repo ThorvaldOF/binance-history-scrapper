@@ -13,6 +13,7 @@ use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
 use crate::extract::{extract_file};
 use crate::input::Settings;
+use crate::utils::errors::ScrapperError;
 
 const BINANCE_BIRTH: i32 = 2017;
 
@@ -81,30 +82,30 @@ fn process(process: ProcessData) {
             println!("Processing {} ", display_name);
 
             match download_file(&asset_file) {
-                Ok(false) => {
-                    if first_iter {
-                        println!("No data available for [{}] finished", &process.asset);
-                    } else {
-                        println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
-                    }
-                    break 'process;
-                }
+                Ok(_) => {}
                 Err(err) => {
-                    println!("An error occured while downloading {}, details: {}", display_name, err);
-                    break 'process;
+                    match err {
+                        ScrapperError::IOError(error) => {
+                            println!("An error occured while downloading {}, details: {}", display_name, error);
+                            break 'process;
+                        }
+                        _ => {
+                            if first_iter {
+                                println!("No data available for [{}] finished", &process.asset);
+                            } else {
+                                println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+                            }
+                            break 'process;
+                        }
+                    }
                 }
-                Ok(true) => {}
             }
             match extract_file(&asset_file, process.clear_cache) {
                 Err(err) => {
                     println!("An error occurred while extracting {}, details: {}", display_name, err);
                     break 'process;
                 }
-                Ok(false) => {
-                    println!("Integrity check failed while extracting {}", display_name);
-                    break 'process;
-                }
-                _ => {}
+                Ok(()) => {}
             }
             if first_iter {
                 first_iter = false;

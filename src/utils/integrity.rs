@@ -1,12 +1,13 @@
 use std::fs::{File, metadata, read_to_string};
 use std::io::Read;
+use std::path::Path;
 use csv::ReaderBuilder;
 use sha2::{Digest, Sha256};
 
-pub fn check_zip_integrity(file_path: &str) -> Result<bool, std::io::Error> {
+pub fn check_zip_integrity(file_path: &str) -> Result<(), std::io::Error> {
     let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
     if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
-        return Ok(false);
+        return Ok(());
     }
 
     let expected_checksum = match read_to_string(&checksum_path) {
@@ -25,12 +26,12 @@ pub fn check_zip_integrity(file_path: &str) -> Result<bool, std::io::Error> {
         let actual_checksum = calculate_checksum(file_path)?;
 
         return if expected_checksum == actual_checksum {
-            Ok(true)
+            Ok(())
         } else {
-            Ok(false)
+            Ok(())
         };
     }
-    Ok(false)
+    Ok(())
 }
 
 fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
@@ -51,21 +52,20 @@ fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
     Ok(checksum)
 }
 
-pub fn check_csv_integrity(file_path: &str, time: (u32, u32)) -> Result<bool, std::io::Error> {
+pub fn check_csv_integrity(file_path: &str, time: (u32, u32)) -> Result<(), std::io::Error> {
     if metadata(file_path).is_err() {
-        return Ok(false);
+        return Ok(());
     }
     let file = File::open(file_path)?;
     let mut csv_reader = ReaderBuilder::new().has_headers(false).from_reader(file);
-
     let expected_count = match get_minutes_in_month(time.0, time.1) {
         Some(val) => val,
-        None => return Ok(false)
+        None => return Ok(())
     };
     if expected_count != csv_reader.records().count() {
-        return Ok(false);
+        return Ok(());
     }
-    Ok(true)
+    Ok(())
 }
 
 pub fn get_minutes_in_month(month: u32, year: u32) -> Option<usize> {

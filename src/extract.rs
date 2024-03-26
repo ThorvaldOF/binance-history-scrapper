@@ -4,11 +4,12 @@ use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
 use crate::utils::integrity::*;
+use crate::utils::errors::ScrapperError;
 
-pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, std::io::Error> {
+pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {
     let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
     match check_csv_integrity(&output_file_path, asset_file.get_time()) {
-        Ok(true) => return Ok(true),
+        Ok(_) => return Ok(()),
         _ => {
             if metadata(output_file_path.clone()).is_ok() {
                 remove_file(output_file_path.clone())?;
@@ -21,9 +22,6 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, s
 
     let mut archive = ZipArchive::new(source_file)?;
 
-    if archive.len() != 1 {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "Invalid ZIP file structure"));
-    }
     create_dir_all(asset_file.get_extract_directory())?;
 
     let mut entry = archive.by_index(0)?;
@@ -38,18 +36,22 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, s
 
     for result in csv_reader.records() {
         let record = result?;
-        let collected_record: Vec<&str> = record.iter().collect();
-
-        //Format based on https://github.com/binance/binance-public-data/
-        let mut processed_record: StringRecord = StringRecord::new();
-        for i in 0..=6 {
-            processed_record.push_field(collected_record[i]);
-        }
-
-        csv_writer.write_record(processed_record.iter())?;
+        csv_writer.write_record(filter_record(record).iter())?;
     }
     if clear_cache {
         remove_file(source_path)?;
     }
-    Ok(true)
+    check_csv_integrity(&output_file_path, asset_file.get_time())?;
+    Ok(())
+}
+
+fn filter_record(record: StringRecord) -> StringRecord {
+    let collected_record: Vec<&str> = record.iter().collect();
+
+    //Format based on https://github.com/binance/binance-public-data/
+    let mut processed_record: StringRecord = StringRecord::new();
+    for i in 0..=6 {
+        processed_record.push_field(collected_record[i]);
+    }
+    processed_record
 }
