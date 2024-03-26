@@ -99,6 +99,10 @@ fn process(process: ProcessData) {
                     println!("An error occurred while extracting {}, details: {}", display_name, err);
                     break 'process;
                 }
+                Ok(false) => {
+                    println!("Integrity check failed while extracting {}", display_name);
+                    break 'process;
+                }
                 _ => {}
             }
             if first_iter {

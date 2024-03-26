@@ -3,6 +3,7 @@ use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
+use crate::utils::integrity::*;
 
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, std::io::Error> {
@@ -27,6 +28,16 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, s
 
     let mut csv_writer = WriterBuilder::new().from_writer(output_file);
 
+    let time = asset_file.get_time();
+    let expected_count = match get_minutes_in_month(time.0, time.1) {
+        Some(val) => val,
+        None => return Ok(false)
+    };
+    if expected_count != csv_reader.records().count() {
+        println!("COUNT INVALID, {} != {}", expected_count, csv_reader.records().count());
+        return Ok(false);
+    }
+
     for result in csv_reader.records() {
         let record = result?;
         let collected_record: Vec<&str> = record.iter().collect();
@@ -44,3 +55,4 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, s
     }
     Ok(true)
 }
+
