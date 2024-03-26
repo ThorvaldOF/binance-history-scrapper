@@ -1,6 +1,6 @@
 use std::{io};
 use serde_json::Value;
-use crate::asset_file::STABLE_COIN;
+use crate::utils::asset_file::STABLE_COIN;
 
 const GRANULARITIES: [&str; 13] = ["1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d"];
 

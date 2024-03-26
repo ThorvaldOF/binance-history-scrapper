@@ -2,7 +2,7 @@ use std::fs::{File, create_dir_all, remove_file};
 use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
-use crate::asset_file::AssetFile;
+use crate::utils::asset_file::AssetFile;
 
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<bool, std::io::Error> {

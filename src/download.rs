@@ -1,7 +1,7 @@
-use std::fs::{File, create_dir_all, metadata, read_to_string, remove_file};
-use std::io::{copy, Read};
-use sha2::{Sha256, Digest};
-use crate::asset_file::{AssetFile};
+use std::fs::{File, create_dir_all, metadata, remove_file};
+use std::io::{copy};
+use crate::utils::integrity::check_integrity;
+use crate::utils::asset_file::{AssetFile};
 
 pub fn download_file(asset_file: &AssetFile) -> Result<bool, std::io::Error> {
     let file_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
@@ -38,50 +38,3 @@ fn download(asset_file: &AssetFile, extension: &str) -> Result<bool, std::io::Er
     Ok(true)
 }
 
-fn check_integrity(file_path: &str) -> Result<bool, std::io::Error> {
-    let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
-    if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
-        return Ok(false);
-    }
-
-    let expected_checksum = match read_to_string(&checksum_path) {
-        Ok(content) => {
-            let parts: Vec<&str> = content.split_whitespace().collect();
-            if let Some(expected_checksum) = parts.get(0).cloned() {
-                Some(expected_checksum.to_string())
-            } else {
-                None
-            }
-        }
-        Err(_) => None,
-    };
-
-    if let Some(expected_checksum) = expected_checksum {
-        let actual_checksum = calculate_checksum(file_path)?;
-
-        return if expected_checksum == actual_checksum {
-            Ok(true)
-        } else {
-            Ok(false)
-        };
-    }
-    Ok(false)
-}
-
-fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
-    let mut file = File::open(file_path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0; 1024];
-
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..bytes_read]);
-    }
-
-    let hash_result = hasher.finalize();
-    let checksum = format!("{:x}", hash_result);
-    Ok(checksum)
-}

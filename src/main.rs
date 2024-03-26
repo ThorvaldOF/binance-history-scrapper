@@ -1,14 +1,14 @@
 mod input;
 mod download;
 mod extract;
-mod asset_file;
+mod utils;
 
 use std::{fs, io, thread};
 use std::sync::{Arc, mpsc, Mutex};
 use std::sync::mpsc::Receiver;
 use chrono::Datelike;
 use chrono::prelude::Local;
-use crate::asset_file::AssetFile;
+use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
 use crate::extract::{extract_file};
 use crate::input::Settings;
