@@ -33,3 +33,5 @@ automatically deleted.
 
 This program uses the Binance API to validate cryptocurrency names. Ensure you have an active internet connection during
 execution.
+
+//TODO: improve that readme

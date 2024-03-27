@@ -1,3 +1,5 @@
+use ureq::Agent;
+
 pub const STABLE_COIN: &str = "USDT";
 const LOCAL_PATH: &str = "./binance_data/";
 const DOWNLOADS_PATH: &str = "downloads/";
@@ -7,20 +9,21 @@ const RESULTS_PATH: &str = "results/";
 pub struct AssetFile {
     asset: String,
     granularity: String,
-    year: i32,
+    year: u32,
     month: u32,
     month_prefix: String,
+    pub agent: Agent,
 }
 
 impl AssetFile {
-    pub fn new(asset: &str, granularity: &str, year: i32, month: u32) -> AssetFile {
+    pub fn new(asset: &str, granularity: &str, year: i32, month: u32, agent: Agent) -> AssetFile {
         let month_prefix = if month < 10 {
             "0".to_string()
         } else {
             String::new()
         };
 
-        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year, month, month_prefix }
+        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix, agent }
     }
 
     pub fn get_display_name(&self) -> String {
@@ -44,6 +47,10 @@ impl AssetFile {
     }
     pub fn get_cache_directory() -> String {
         format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)
+    }
+
+    pub fn get_time(&self) -> (u32, u32) {
+        (self.month, self.year)
     }
 
     fn get_local_directory(&self, directory: &str) -> String {
