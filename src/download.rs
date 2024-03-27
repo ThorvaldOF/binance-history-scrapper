@@ -10,32 +10,41 @@ pub fn download_file(asset_file: &AssetFile) -> Result<(), ScrapperError> {
     if check_zip_integrity(&file_path).is_ok() {
         return Ok(());
     }
+    download(&asset_file, ".zip", false)?;
 
-    if metadata(&file_path).is_ok() {
-        remove_file(&file_path)?;
+    download(&asset_file, ".zip.CHECKSUM", false)?;
+    if check_zip_integrity(&file_path).is_err() {
+        download(&asset_file, ".zip", true)?;
+
+        download(&asset_file, ".zip.CHECKSUM", true)?;
     }
-    if metadata(file_path.clone() + ".CHECKSUM").is_ok() {
-        remove_file(file_path.clone() + ".CHECKSUM")?;
-    }
-
-    download(&asset_file, ".zip")?;
-    download(&asset_file, ".zip.CHECKSUM")?;
-
     check_zip_integrity(&file_path)?;
     Ok(())
 }
 
-fn download(asset_file: &AssetFile, extension: &str) -> Result<(), ScrapperError> {
-    let response = ureq::get(&asset_file.get_download_url(extension)).call();
+fn download(asset_file: &AssetFile, extension: &str, overwrite: bool) -> Result<(), ScrapperError> {
+    let file_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(extension);
+    if check_file(&file_path) && overwrite {
+        remove_file(&file_path)?;
+    }
+    let response = asset_file.agent.get(&asset_file.get_download_url(extension)).call();
 
+    //TODO: check if it's really a "not found error", or if it's other kind of error like "not connected to internet", etc...
     if !response.is_ok() {
         return Err(ScrapperError::NoOnlineData);
     }
 
     create_dir_all(&asset_file.get_download_directory())?;
 
-    let mut file = File::create(format!("{}{}", asset_file.get_download_directory(), asset_file.get_full_file_name(extension)))?;
+    let mut file = File::create(file_path)?;
 
     copy(&mut response.unwrap().into_reader(), &mut file)?;
     Ok(())
+}
+
+fn check_file(path: &str) -> bool {
+    if let Ok(metadata) = metadata(path) {
+        return metadata.is_file();
+    }
+    false
 }

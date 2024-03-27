@@ -20,16 +20,13 @@ pub fn check_zip_integrity(file_path: &str) -> Result<(), ScrapperError> {
         }
     };
 
-    if let expected_checksum = expected_checksum {
-        let actual_checksum = calculate_checksum(file_path)?;
+    let actual_checksum = calculate_checksum(file_path)?;
 
-        return if expected_checksum == actual_checksum {
-            Ok(())
-        } else {
-            Ok(())
-        };
-    }
-    Ok(())
+    return if expected_checksum == actual_checksum {
+        Ok(())
+    } else {
+        Err(ScrapperError::IntegrityError)
+    };
 }
 
 fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
