@@ -17,6 +17,7 @@ use crate::utils::errors::ScrapperError;
 
 const BINANCE_BIRTH: i32 = 2017;
 
+//TODO: check all the project and rename stuff
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
@@ -27,7 +28,6 @@ fn main() {
     let settings = input::process_input();
     let clear_cache = settings.clear_cache;
 
-    //TODO: utiliser un mutex, et chaque thread va piocher dans ce mutex pour savoir quel process exécuter, quand le mutex.size() = 0, go finir le programme
     handle_processes(settings);
 
     if clear_cache {
@@ -60,7 +60,6 @@ fn handle_processes(settings: Settings) {
 }
 
 fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
-    //TODO: more parameters
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
@@ -83,6 +82,7 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
 }
 
 fn process(process: ProcessData, agent: Agent) {
+    println!("[{}] Processing...", process.asset);
     let today = Local::now();
     let mut first_iter = true;
     'process: for year in (BINANCE_BIRTH..today.year()).rev() {
@@ -92,30 +92,28 @@ fn process(process: ProcessData, agent: Agent) {
         }
         for month in (1..=max_month).rev() {
             let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());
-            let display_name = asset_file.get_display_name();
 
-            match download_file(&asset_file) {
-                Ok(_) => {}
-                Err(ScrapperError::NoOnlineData) => {
-                    if first_iter {
-                        println!("No data available for [{}]", &process.asset);
-                    } else {
-                        println!("Process of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+            if let Err(err) = download_file(&asset_file) {
+                match err {
+                    ScrapperError::NoOnlineData => {
+                        if first_iter {
+                            println!("[{}] No data available", &process.asset);
+                        } else {
+                            println!("[{}] Finished, no data available before {}/{} (included)", &process.asset, month, year);
+                        }
+                        break 'process;
                     }
-                    break 'process;
-                }
-                Err(err) => {
-                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                    println!("An error occured while downloading {}, details: {}", display_name, err);
-                    break 'process;
+                    _ => {
+                        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                        println!("[{}] Download error, details: {}", &process.asset, err);
+                        break 'process;
+                    }
                 }
             }
-            match extract_file(&asset_file, process.clear_cache) {
-                Err(err) => {
-                    println!("An error occurred while extracting {}, details: {}", display_name, err);
-                    break 'process;
-                }
-                Ok(()) => {}
+            if let Err(err) = extract_file(&asset_file, process.clear_cache) {
+                //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                println!("[{}] Extraction error, details: {}", &process.asset, err);
+                break 'process;
             }
             if first_iter {
                 first_iter = false;

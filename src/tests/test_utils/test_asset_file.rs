@@ -1,13 +1,7 @@
 #[cfg(test)]
 pub mod test_asset_file {
-    use ureq::{Agent, AgentBuilder};
+    use ureq::{AgentBuilder};
     use crate::utils::asset_file::AssetFile;
-
-    #[test]
-    fn test_get_display_name() {
-        let asset_file = AssetFile::new("BTC", "1h", 2024, 3, AgentBuilder::new().build());
-        assert_eq!(asset_file.get_display_name(), "[BTCUSDT 1h -> 3/2024]");
-    }
 
     #[test]
     fn test_get_file_name() {

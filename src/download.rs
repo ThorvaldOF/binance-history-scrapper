@@ -27,8 +27,6 @@ fn download(asset_file: &AssetFile, extension: &str, overwrite: bool) -> Result<
     if check_file(&file_path) && overwrite {
         remove_file(&file_path)?;
     }
-    println!("Downloading {} ...", asset_file.get_display_name());
-
     let response = asset_file.agent.get(&asset_file.get_download_url(extension)).call();
 
     //TODO: improve that error management
