@@ -5,8 +5,7 @@ mod utils;
 mod tests;
 
 use std::{fs, io, thread};
-use std::sync::{Arc, mpsc, Mutex};
-use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use chrono::Datelike;
 use chrono::prelude::Local;
 use ureq::{Agent, AgentBuilder};

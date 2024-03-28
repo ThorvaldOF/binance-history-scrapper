@@ -29,11 +29,7 @@ fn download(asset_file: &AssetFile, extension: &str, overwrite: bool) -> Result<
     }
     let response = asset_file.agent.get(&asset_file.get_download_url(extension)).call();
 
-    //TODO: check if it's really a "not found error", or if it's other kind of error like "not connected to internet", etc...
-    if response.is_err() {
-        return Err(ScrapperError::NoOnlineData);
-    }
-
+    //TODO: improve that error management
     match response {
         Ok(_) => {}
         Err(error) => {

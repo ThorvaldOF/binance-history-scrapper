@@ -7,19 +7,17 @@ pub enum ScrapperError {
     NetworkError(ureq::Error),
     IntegrityError,
     NoOnlineData,
-    OtherError,
 }
 
 impl fmt::Display for ScrapperError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ScrapperError::IOError(e) => { write!(f, "TODO:Implement display") }
-            ScrapperError::ZipError(e) => { write!(f, "TODO:Implement display") }
-            ScrapperError::CsvError(e) => { write!(f, "TODO:Implement display") }
-            ScrapperError::NetworkError(e) => { write!(f, "TODO:Implement display") }
-            ScrapperError::IntegrityError => { write!(f, "TODO:Implement display") }
-            ScrapperError::NoOnlineData => { write!(f, "TODO:Implement display") }
-            ScrapperError::OtherError => { write!(f, "TODO:Implement display") }
+            ScrapperError::IOError(e) => { write!(f, "IO error: {}", e) }
+            ScrapperError::ZipError(e) => { write!(f, "Zip error {}", e) }
+            ScrapperError::CsvError(e) => { write!(f, "Csv error: {}", e) }
+            ScrapperError::NetworkError(e) => { write!(f, "Network error: {}", e) }
+            ScrapperError::IntegrityError => { write!(f, "Integrity couldn't be checked") }
+            ScrapperError::NoOnlineData => { write!(f, "No data available on Binance servers") }
         }
     }
 }
