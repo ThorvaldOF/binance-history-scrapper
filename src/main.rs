@@ -54,7 +54,6 @@ fn handle_processes(settings: Settings) {
         handles.push(handle);
     }
 
-
     for handle in handles {
         handle.join().unwrap();
     }
@@ -94,7 +93,6 @@ fn process(process: ProcessData, agent: Agent) {
         for month in (1..=max_month).rev() {
             let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());
             let display_name = asset_file.get_display_name();
-            println!("Processing {} ", display_name);
 
             match download_file(&asset_file) {
                 Ok(_) => {}
@@ -102,11 +100,12 @@ fn process(process: ProcessData, agent: Agent) {
                     if first_iter {
                         println!("No data available for [{}]", &process.asset);
                     } else {
-                        println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+                        println!("Process of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
                     }
                     break 'process;
                 }
                 Err(err) => {
+                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
                     println!("An error occured while downloading {}, details: {}", display_name, err);
                     break 'process;
                 }
