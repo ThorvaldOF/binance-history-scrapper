@@ -34,6 +34,24 @@ fn download(asset_file: &AssetFile, extension: &str, overwrite: bool) -> Result<
         return Err(ScrapperError::NoOnlineData);
     }
 
+    match response {
+        Ok(_) => {}
+        Err(error) => {
+            return match error {
+                ureq::Error::Status(code, _) => {
+                    if code == 404 {
+                        Err(ScrapperError::NoOnlineData)
+                    } else {
+                        Err(ScrapperError::NetworkError(error))
+                    }
+                }
+                ureq::Error::Transport(_) => {
+                    Err(ScrapperError::NetworkError(error))
+                }
+            };
+        }
+    }
+
     create_dir_all(&asset_file.get_download_directory())?;
 
     let mut file = File::create(file_path)?;

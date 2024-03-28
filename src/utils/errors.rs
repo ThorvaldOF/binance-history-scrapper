@@ -4,6 +4,7 @@ pub enum ScrapperError {
     IOError(io::Error),
     ZipError(zip::result::ZipError),
     CsvError(csv::Error),
+    NetworkError(ureq::Error),
     IntegrityError,
     NoOnlineData,
     OtherError,
@@ -15,6 +16,7 @@ impl fmt::Display for ScrapperError {
             ScrapperError::IOError(e) => { write!(f, "TODO:Implement display") }
             ScrapperError::ZipError(e) => { write!(f, "TODO:Implement display") }
             ScrapperError::CsvError(e) => { write!(f, "TODO:Implement display") }
+            ScrapperError::NetworkError(e) => { write!(f, "TODO:Implement display") }
             ScrapperError::IntegrityError => { write!(f, "TODO:Implement display") }
             ScrapperError::NoOnlineData => { write!(f, "TODO:Implement display") }
             ScrapperError::OtherError => { write!(f, "TODO:Implement display") }

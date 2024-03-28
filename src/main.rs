@@ -28,6 +28,7 @@ fn main() {
     let settings = input::process_input();
     let clear_cache = settings.clear_cache;
 
+    //TODO: utiliser un mutex, et chaque thread va piocher dans ce mutex pour savoir quel process exécuter, quand le mutex.size() = 0, go finir le programme
     handle_processes(settings);
 
     if clear_cache {
@@ -40,34 +41,45 @@ fn main() {
 }
 
 fn handle_processes(settings: Settings) {
-    let (tx, rx) = mpsc::channel();
-    let rx = Arc::new(Mutex::new(rx));
+    let mut processes_vec: Vec<ProcessData> = vec![];
+    for asset in settings.assets {
+        let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
+        processes_vec.push(process_data);
+    }
+    let processes = Arc::new(Mutex::new(processes_vec));
 
     let mut handles = vec![];
     for _ in 0..4 {
-        let rx_clone = Arc::clone(&rx);
-        let handle = thread::spawn(move || process_worker(rx_clone));
+        let processes_clone = Arc::clone(&processes);
+        let handle = thread::spawn(move || process_worker(processes_clone));
         handles.push(handle);
     }
 
-    for asset in settings.assets {
-        let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
-        tx.send(process_data).unwrap();
-    }
+
     for handle in handles {
         handle.join().unwrap();
     }
 }
 
-fn process_worker(rx: Arc<Mutex<Receiver<ProcessData>>>) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
     //TODO: more parameters
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
-        let process_data = match rx.lock().unwrap().recv() {
-            Ok(process_data) => process_data,
-            Err(_) => break,
+        let mut processes = match processes.lock() {
+            Ok(data) => data,
+            Err(_) => {
+                //TODO: maybe a better error handling
+                break;
+            }
         };
+        if processes.is_empty() {
+            //No process remaining
+            break;
+        }
+
+        let process_data = processes.remove(0);
+        drop(processes);
         process(process_data, agent.clone());
     }
 }
