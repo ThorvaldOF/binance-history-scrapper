@@ -18,6 +18,7 @@ use crate::utils::errors::ScrapperError;
 const BINANCE_BIRTH: i32 = 2017;
 
 //TODO: check all the project and rename stuff
+//TODO: Some indicator to know percentage of assets downloaded
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
