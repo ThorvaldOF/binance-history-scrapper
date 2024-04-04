@@ -18,7 +18,6 @@ use crate::utils::errors::ScrapperError;
 const BINANCE_BIRTH: i32 = 2017;
 
 //TODO: check all the project and rename stuff
-//TODO: Some indicator to know percentage of assets downloaded
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
@@ -42,7 +41,6 @@ fn main() {
 
 fn handle_processes(settings: Settings) {
     let mut processes_vec: Vec<ProcessData> = vec![];
-    let original_size =settings.assets.iter().count();
     for asset in settings.assets {
         let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
         processes_vec.push(process_data);
@@ -52,7 +50,7 @@ fn handle_processes(settings: Settings) {
     let mut handles = vec![];
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
-        let handle = thread::spawn(move || process_worker(processes_clone, original_size.clone()));
+        let handle = thread::spawn(move || process_worker(processes_clone));
         handles.push(handle);
     }
 
@@ -61,7 +59,7 @@ fn handle_processes(settings: Settings) {
     }
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, original_size: usize) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
