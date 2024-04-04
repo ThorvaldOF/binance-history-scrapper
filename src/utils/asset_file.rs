@@ -26,9 +26,6 @@ impl AssetFile {
         AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix, agent }
     }
 
-    pub fn get_display_name(&self) -> String {
-        format!("[{}{} {} -> {}/{}]", self.asset, STABLE_COIN, self.granularity, self.month, self.year)
-    }
     pub fn get_file_name(&self) -> String {
         format!("{}{}-{}-{}-{}{}", self.asset, STABLE_COIN, self.granularity, self.year, self.month_prefix, self.month)
     }

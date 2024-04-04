@@ -5,8 +5,7 @@ mod utils;
 mod tests;
 
 use std::{fs, io, thread};
-use std::sync::{Arc, mpsc, Mutex};
-use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use chrono::Datelike;
 use chrono::prelude::Local;
 use ureq::{Agent, AgentBuilder};
@@ -18,6 +17,7 @@ use crate::utils::errors::ScrapperError;
 
 const BINANCE_BIRTH: i32 = 2017;
 
+//TODO: check all the project and rename stuff
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
@@ -40,76 +40,83 @@ fn main() {
 }
 
 fn handle_processes(settings: Settings) {
-    let (tx, rx) = mpsc::channel();
-    let rx = Arc::new(Mutex::new(rx));
+    let mut processes_vec: Vec<ProcessData> = vec![];
+    for asset in settings.assets {
+        let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
+        processes_vec.push(process_data);
+    }
+    let processes = Arc::new(Mutex::new(processes_vec));
 
     let mut handles = vec![];
     for _ in 0..4 {
-        let rx_clone = Arc::clone(&rx);
-        let handle = thread::spawn(move || process_worker(rx_clone));
+        let processes_clone = Arc::clone(&processes);
+        let handle = thread::spawn(move || process_worker(processes_clone));
         handles.push(handle);
     }
 
-    for asset in settings.assets {
-        let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
-        tx.send(process_data).unwrap();
-    }
     for handle in handles {
         handle.join().unwrap();
     }
 }
 
-fn process_worker(rx: Arc<Mutex<Receiver<ProcessData>>>) {
-    //TODO: more parameters
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
-        let process_data = match rx.lock().unwrap().recv() {
-            Ok(process_data) => process_data,
-            Err(_) => break,
+        let mut processes = match processes.lock() {
+            Ok(data) => data,
+            Err(_) => {
+                //TODO: maybe a better error handling
+                break;
+            }
         };
-        process(process_data, agent.clone());
+        if processes.is_empty() {
+            //No process remaining
+            break;
+        }
+
+        let process_data = processes.remove(0);
+        drop(processes);
+        println!("[{}] Processing... ()", process_data.asset);
+        let results = process(process_data, agent.clone());
+        println!("{}",results);
     }
 }
 
-fn process(process: ProcessData, agent: Agent) {
+fn process(process: ProcessData, agent: Agent)-> String {
     let today = Local::now();
     let mut first_iter = true;
-    'process: for year in (BINANCE_BIRTH..today.year()).rev() {
+    for year in (BINANCE_BIRTH..today.year()).rev() {
         let mut max_month = 12;
         if year == today.year() {
             max_month = today.month();
         }
         for month in (1..=max_month).rev() {
             let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());
-            let display_name = asset_file.get_display_name();
-            println!("Processing {} ", display_name);
 
-            match download_file(&asset_file) {
-                Ok(_) => {}
-                Err(ScrapperError::NoOnlineData) => {
-                    if first_iter {
-                        println!("No data available for [{}]", &process.asset);
-                    } else {
-                        println!("Download of [{}] finished, no data available before {}/{} (included)", &process.asset, month, year);
+            if let Err(err) = download_file(&asset_file) {
+                return match err {
+                    ScrapperError::NoOnlineData => {
+                        if first_iter {
+                            format!("[{}] No data available", &process.asset)
+                        } else {
+                            format!("[{}] Finished, no data available before {}/{} (included)", &process.asset, month, year)
+                        }
                     }
-                    break 'process;
-                }
-                Err(err) => {
-                    println!("An error occured while downloading {}, details: {}", display_name, err);
-                    break 'process;
+                    _ => {
+                        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                        format!("[{}] Download error, details: {}", &process.asset, err)
+                    }
                 }
             }
-            match extract_file(&asset_file, process.clear_cache) {
-                Err(err) => {
-                    println!("An error occurred while extracting {}, details: {}", display_name, err);
-                    break 'process;
-                }
-                Ok(()) => {}
+            if let Err(err) = extract_file(&asset_file, process.clear_cache) {
+                //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                return format!("[{}] Extraction error, details: {}", &process.asset, err);
             }
             if first_iter {
                 first_iter = false;
             }
         }
     }
+    String::new()
 }
