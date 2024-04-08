@@ -77,7 +77,7 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
 
         let process_data = processes.remove(0);
         drop(processes);
-        println!("[{}] Processing... ()", process_data.asset);
+        println!("[{}] Processing...", process_data.asset);
         let results = process(process_data, agent.clone());
         println!("{}",results);
     }

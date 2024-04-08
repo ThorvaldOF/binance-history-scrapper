@@ -47,21 +47,6 @@ fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
     Ok(checksum)
 }
 
-pub fn check_csv_integrity(file_path: &str, time: (u32, u32)) -> Result<(), std::io::Error> {
-    if metadata(file_path).is_err() {
-        return Ok(());
-    }
-    let file = File::open(file_path)?;
-    let mut csv_reader = ReaderBuilder::new().has_headers(false).from_reader(file);
-    let expected_count = match get_minutes_in_month(time.0, time.1) {
-        Some(val) => val,
-        None => return Ok(())
-    };
-    if expected_count != csv_reader.records().count() {
-        return Ok(());
-    }
-    Ok(())
-}
 
 pub fn get_minutes_in_month(month: u32, year: u32) -> Option<usize> {
     let days = match month {

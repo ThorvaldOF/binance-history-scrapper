@@ -3,18 +3,12 @@ use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
-use crate::utils::integrity::*;
 use crate::utils::errors::ScrapperError;
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {
     let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
-    match check_csv_integrity(&output_file_path, asset_file.get_time()) {
-        Ok(_) => return Ok(()),
-        _ => {
-            if metadata(output_file_path.clone()).is_ok() {
-                remove_file(output_file_path.clone())?;
-            }
-        }
+    if metadata(&output_file_path).is_ok() {
+        remove_file(output_file_path.clone())?;
     }
 
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
@@ -41,7 +35,6 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), Scr
     if clear_cache {
         remove_file(source_path)?;
     }
-    check_csv_integrity(&output_file_path, asset_file.get_time())?;
     Ok(())
 }
 
