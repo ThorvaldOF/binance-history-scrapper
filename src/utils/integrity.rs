@@ -1,6 +1,5 @@
 use std::fs::{File, metadata, read_to_string};
 use std::io::Read;
-use csv::ReaderBuilder;
 use sha2::{Digest, Sha256};
 use crate::ScrapperError;
 
@@ -47,20 +46,3 @@ fn calculate_checksum(file_path: &str) -> Result<String, std::io::Error> {
     Ok(checksum)
 }
 
-
-pub fn get_minutes_in_month(month: u32, year: u32) -> Option<usize> {
-    let days = match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        2 => {
-            let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-            if leap_year {
-                29
-            } else {
-                28
-            }
-        }
-        _ => return None,
-    };
-    Some(days * 24 * 60)
-}

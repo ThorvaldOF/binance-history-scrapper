@@ -46,10 +46,6 @@ impl AssetFile {
         format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)
     }
 
-    pub fn get_time(&self) -> (u32, u32) {
-        (self.month, self.year)
-    }
-
     fn get_local_directory(&self, directory: &str) -> String {
         format!("{}{}{}{}/{}/", LOCAL_PATH, directory, self.asset, STABLE_COIN, self.granularity)
     }
