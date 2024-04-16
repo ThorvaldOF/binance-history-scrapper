@@ -1,4 +1,4 @@
-use std::{io};
+use std::{env, io};
 use serde_json::Value;
 use crate::utils::asset_file::STABLE_COIN;
 
@@ -11,18 +11,17 @@ pub struct Settings {
 }
 
 pub fn process_input() -> Settings {
-    println!("Welcome to the scrapper");
+    let args: Vec<String> = env::args().collect();
+    let granularity = get_flag(&args, "granularity", "1m");
+    check_granularity(&granularity);
 
-    println!("Type the granularity you want to scrap, by default it's '1s' (every second).");
-    println!("Here is the list of available granularities: {:?}", GRANULARITIES);
-    println!("Leave blank for default value: 1s");
-    let granularity = get_granularity();
+    let asset_input = get_flag(&args, "asset", "everything");
+    let assets = check_asset(&asset_input);
 
-    println!("Type the asset you want to scrap, BTC for example. Type EVERYTHING to crap all available assets");
-    let assets = get_asset();
+    let clear_cache_flag = args.iter().position(|arg| arg == "clear_cache");
+    let clear_cache = clear_cache_flag.is_some();
 
-    println!("Do you want to clear the [downloads] directory when unused? (yes/no)");
-    let clear_cache = get_clear_cache();
+    println!("Processing on granularity: {}, assets: {} and clear_cache: {}", granularity, asset_input, clear_cache);
 
     Settings {
         granularity,
@@ -31,76 +30,32 @@ pub fn process_input() -> Settings {
     }
 }
 
-fn get_granularity() -> String {
-    let mut granularity: String = String::new();
-    loop {
-        granularity.clear();
-        io::stdin().read_line(&mut granularity).expect("Couldn't retrieve your input, please try again");
-        let granularity = granularity.trim();
-        if GRANULARITIES.contains(&granularity) {
-            println!("Granularity set to {}", granularity);
-            return granularity.to_string();
-        } else {
-            println!("Input blank or invalid, please enter a valid granularity");
-            println!("Reminder, here is the list of available granularities: {:?}", GRANULARITIES);
+fn get_flag(args: &Vec<String>, name: &str, default: &str) -> String {
+    let flag = args.iter().position(|arg| arg == name);
+    if let Some(index) = flag {
+        if let Some(value) = args.get(index + 1) {
+            return value.to_string();
         }
+    }
+    default.to_string()
+}
+
+fn check_granularity(granularity: &str) {
+    if !GRANULARITIES.contains(&granularity) {
+        panic!("Invalid granularity, should be one of those {:?}", GRANULARITIES);
     }
 }
 
-fn get_asset() -> Vec<String> {
-    let mut assets: Vec<String> = Vec::new();
-    loop {
-        let mut input: String = String::new();
-        io::stdin().read_line(&mut input).expect("Couldn't retrieve your input, please try again");
-        format_asset(&mut input);
-        if input == "EVERYTHING" {
-            match get_all_assets() {
-                Some(all_assets) => {
-                    println!("Okay, we will processing all available assets on Binance, here is the list: {:?}", all_assets);
-                    return all_assets;
-                }
-                None => {
-                    println!("An error occured while fetching all available assets");
-                    continue;
-                }
-            }
-        }
-        let result = check_symbol(input);
-        match result {
-            Some(asset) => {
-                println!("Input valid, asset set to [{}]", asset);
-                assets.push(asset);
-                return assets;
-            }
-            None => {
-                println!("This asset doesn't exist, please enter a valid one");
-            }
-        }
-    }
+fn check_asset(asset: &str) -> Vec<String> {
+    if asset.contains("everything") {
+        return get_all_assets().unwrap();
+    };
+    if let Some(assets) = check_symbol(asset.to_string()) {
+        return vec![assets];
+    };
+    panic!("Invalid asset, let blank to scrap everything");
 }
 
-fn get_clear_cache() -> bool {
-    let mut input: String = String::new();
-    loop {
-        input.clear();
-        io::stdin().read_line(&mut input).expect("Couldn't retrieve your input, please try again");
-
-        let input = input.trim();
-        match input {
-            "yes" | "y" => {
-                println!("The [downloads] directory will be cleared when unused");
-                return true;
-            }
-            "no" | "n" => {
-                println!("The [downloads] directory won't be cleared when unused");
-                return false;
-            }
-            _ => {
-                println!("Please answer by yes or no, (y and n also works)");
-            }
-        }
-    }
-}
 
 fn check_symbol(asset: String) -> Option<String> {
     if asset.is_empty() {
