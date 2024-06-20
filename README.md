@@ -4,34 +4,37 @@ This Rust program retrieves historical data for a cryptocurrency from the Binanc
 
 ## Usage Instructions
 
-1. **Granularity**
+In order to use the program, you need to use flags, here's the syntax
 
-   When launching the program, you can set the data retrieval granularity, by default set to '1s' (every second).
+`./[program_name] granularity [value] asset [value] clear_cache`
+
+1. **Granularity**
 
    Here is the list of available granularities:
     - 1s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d
+   
+   Syntax example :`./[program_name] granularity 12h`
+   The default value is `1m`
 
-   Input format: `[Granularity]`. Leave it blank to use default settings.
+2. **Asset**
+   
+   A check is made when selecting an asset, if it's available on Binance, it should work
 
-2. **Cryptocurrency to retrieve (asset)**
-   Enter the names of the asset you want to retrieve. The program validates names using the Binance API.
+   Syntax example :`./[program_name] asset BTC`
+   The default value is `everything`, which means that the program will scrap all assets available on Binance
 
-   While the asset isn't valid you can't continue.
+3. **Clear cache**
 
-3. **Stable coin to use**
+   When processing, the program will create a `downloads` directory, containing all the `.zip` and `.CHECKSUM` files.
+   By entering the `clear_cache` flag, the program will clear this directory in real time, saving you disk storage.
 
-In combination of the asset you need a stable coin, the process is more or less the same as the asset retrieval
+   By default, this feature is off.
 
 ## Output
 
-Once the program completes, the results will be available in the 'results' directory. Temporary download files are
-automatically deleted.
-
-**Note:** Press Enter to exit the program after execution.
+Once the program completes, the results will be available in the 'results' directory.
 
 ## Note
 
 This program uses the Binance API to validate cryptocurrency names. Ensure you have an active internet connection during
 execution.
-
-//TODO: improve that readme
