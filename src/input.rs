@@ -1,4 +1,4 @@
-use std::{env, io};
+use std::{env};
 use serde_json::Value;
 use crate::utils::asset_file::STABLE_COIN;
 
@@ -98,10 +98,11 @@ fn get_all_assets() -> Option<Vec<String>> {
     Some(asset_pairs)
 }
 
+/*
 fn format_asset(input: &mut String) {
     *input = input
         .chars()
         .filter(|&c| !c.is_whitespace())
         .collect::<String>()
         .to_uppercase();
-}
+}*/
