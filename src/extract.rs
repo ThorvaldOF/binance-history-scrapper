@@ -28,8 +28,20 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), Scr
 
     let mut csv_writer = WriterBuilder::new().from_writer(output_file);
 
+    let mut last_ts:u64 = 0;
+    let first_iter = true;
     for result in csv_reader.records() {
         let record = result?;
+        let ts :u64 = record[0].parse()?;
+        if first_iter{
+            last_ts = ts;
+        }
+        if last_ts + 60000 != ts{
+            remove_file(source_path)?;
+            return Err(ScrapperError::IntegrityError);
+        }
+        last_ts = ts;
+
         csv_writer.write_record(filter_record(record).iter())?;
     }
     if clear_cache {
