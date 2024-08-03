@@ -38,9 +38,6 @@ fn main() {
         fs::remove_dir_all(AssetFile::get_cache_directory()).expect("Couldn't clear downloads directory");
     }
     println!("Scrapping completed, you can find your output in 'results' directory");
-    println!("Press enter to quit...");
-    let mut useless_input = String::new();
-    io::stdin().read_line(&mut useless_input).expect("Couldn't retrieve your input, please try again");
 }
 
 fn handle_processes(settings: Settings) {
