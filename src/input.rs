@@ -1,6 +1,7 @@
 use std::{env};
 use serde_json::Value;
 use crate::utils::asset_file::STABLE_COIN;
+use clap::Args;
 
 const GRANULARITIES: [&str; 13] = ["1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d"];
 
@@ -9,6 +10,7 @@ pub struct Settings {
     pub assets: Vec<String>,
     pub clear_cache: bool,
 }
+//TODO: confirmation of user settings
 
 pub fn process_input() -> Settings {
     let args: Vec<String> = env::args().collect();
@@ -97,12 +99,3 @@ fn get_all_assets() -> Option<Vec<String>> {
 
     Some(asset_pairs)
 }
-
-/*
-fn format_asset(input: &mut String) {
-    *input = input
-        .chars()
-        .filter(|&c| !c.is_whitespace())
-        .collect::<String>()
-        .to_uppercase();
-}*/

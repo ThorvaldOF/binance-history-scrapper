@@ -5,19 +5,25 @@ mod utils;
 mod tests;
 
 use std::{fs, io, thread};
+use std::fmt::format;
 use std::sync::{Arc, Mutex};
 use chrono::Datelike;
 use chrono::prelude::Local;
+use clap::builder::Str;
+use serde::{Deserialize, Serialize};
+use sha2::digest::typenum::NInt;
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
 use crate::extract::{extract_file};
 use crate::input::Settings;
 use crate::utils::errors::ScrapperError;
+use crate::utils::manifest::{DatePeriod, Manifest, TimePeriod};
 
 const BINANCE_BIRTH: i32 = 2017;
 
 //TODO: check all the project and rename stuff
+#[derive(Clone)]
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
@@ -46,20 +52,35 @@ fn handle_processes(settings: Settings) {
         processes_vec.push(process_data);
     }
     let processes = Arc::new(Mutex::new(processes_vec));
+    let manifest = Arc::new(Mutex::new(Manifest::new()));
 
     let mut handles = vec![];
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
-        let handle = thread::spawn(move || process_worker(processes_clone));
+        let manifest_clone = Arc::clone(&manifest);
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone));
         handles.push(handle);
     }
 
     for handle in handles {
         handle.join().unwrap();
     }
+    match manifest.lock() {
+        Ok(man) => {
+            if man.save().is_err() {
+                //TODO: maybe a better error handling
+                println!("Couldn't save manifest");
+            }
+        }
+        Err(_) => {
+            //TODO: maybe a better error handling
+            println!("Couldn't save manifest");
+        }
+    };
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
+//START END DATE
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
@@ -78,15 +99,26 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>) {
         let process_data = processes.remove(0);
         drop(processes);
         println!("[{}] Processing...", process_data.asset);
-        let results = process(process_data, agent.clone());
-        println!("{}",results);
+        let results = process(process_data.clone(), agent.clone());
+        if let Some((_, date_period)) = results {
+            let mut manifest = match manifest.lock() {
+                Ok(man) => man,
+                Err(_) => {
+                    //TODO: maybe a better error handling
+                    continue;
+                }
+            };
+            manifest.add_asset(&process_data.granularity, &process_data.asset, date_period)
+        }
     }
 }
 
-fn process(process: ProcessData, agent: Agent)-> String {
+fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
     let today = Local::now();
     let mut first_iter = true;
-    for year in (BINANCE_BIRTH..today.year()).rev() {
+    let mut start_date = String::new();
+    let end_date = format!("{}-{}", month_to_string(today.month()), today.year());
+    'process: for year in (BINANCE_BIRTH..today.year()).rev() {
         let mut max_month = 12;
         if year == today.year() {
             max_month = today.month();
@@ -95,28 +127,42 @@ fn process(process: ProcessData, agent: Agent)-> String {
             let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());
 
             if let Err(err) = download_file(&asset_file) {
-                return match err {
+                match err {
                     ScrapperError::NoOnlineData => {
                         if first_iter {
-                            format!("[{}] No data available", &process.asset)
+                            println!("[{}] No data available", &process.asset);
+                            return None;
                         } else {
-                            format!("[{}] Finished, no data available before {}/{} (included)", &process.asset, month, year)
+                            println!("[{}] Finished, no data available before {}/{} (included)", &process.asset, month, year);
+                            start_date = format!("{}-{}", month_to_string(month), year);
+                            break 'process;
                         }
                     }
                     _ => {
                         //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                        format!("[{}] Download error, details: {}", &process.asset, err)
+                        println!("[{}] Download error, details: {}", &process.asset, err);
+                        return None;
                     }
-                }
+                };
             }
             if let Err(err) = extract_file(&asset_file, process.clear_cache) {
                 //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                return format!("[{}] Extraction error, details: {}", &process.asset, err);
+                println!("[{}] Extraction error, details: {}", &process.asset, err);
+                return None;
             }
             if first_iter {
                 first_iter = false;
             }
         }
     }
-    String::new()
+    Some((vec![], DatePeriod::new(&start_date, &end_date)))
+}
+
+fn month_to_string(month: u32) -> String {
+    let prefix = if month < 10 {
+        "0"
+    } else {
+        ""
+    };
+    format!("{}{}", prefix, month)
 }
