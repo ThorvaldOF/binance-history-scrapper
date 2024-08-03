@@ -47,7 +47,7 @@ impl AssetFile {
     }
 
     fn get_local_directory(&self, directory: &str) -> String {
-        format!("{}{}{}{}/{}/", LOCAL_PATH, directory, self.asset, STABLE_COIN, self.granularity)
+        format!("{}{}{}/{}{}/", LOCAL_PATH, directory, self.granularity, self.asset, STABLE_COIN)
     }
 }
 

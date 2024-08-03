@@ -5,13 +5,10 @@ mod utils;
 mod tests;
 
 use std::{fs, io, thread};
-use std::fmt::format;
 use std::sync::{Arc, Mutex};
 use chrono::Datelike;
 use chrono::prelude::Local;
-use clap::builder::Str;
 use serde::{Deserialize, Serialize};
-use sha2::digest::typenum::NInt;
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
@@ -30,6 +27,7 @@ pub struct ProcessData {
     pub clear_cache: bool,
 }
 
+//TODO: Some kind of progress bar
 fn main() {
     let settings = input::process_input();
     let clear_cache = settings.clear_cache;
