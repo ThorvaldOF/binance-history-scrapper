@@ -95,7 +95,7 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
         drop(processes);
         println!("[{}] Processing...", process_data.asset);
         let results = process(process_data.clone(), agent.clone());
-        if let Some((_, date_period)) = results {
+        if let Some((down_times, date_period)) = results {
             let mut manifest = match manifest.lock() {
                 Ok(man) => man,
                 Err(_) => {
@@ -103,7 +103,10 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
                     continue;
                 }
             };
-            manifest.add_asset(&process_data.granularity, &process_data.asset, date_period)
+            manifest.add_asset(&process_data.granularity, &process_data.asset, date_period);
+            for down_time in down_times {
+                manifest.add_down_time(&process_data.granularity, down_time);
+            }
         }
     }
 }
@@ -112,7 +115,9 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
     let today = Local::now();
     let mut first_iter = true;
     let mut start_date = String::new();
+    let mut last_ts: u64 = 0;
     let end_date = format!("{}-{}", month_to_string(today.month()), today.year());
+    let mut down_times: Vec<TimePeriod> = vec![];
     'process: for year in (BINANCE_BIRTH..today.year()).rev() {
         let mut max_month = 12;
         if year == today.year() {
@@ -140,17 +145,25 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
                     }
                 };
             }
-            if let Err(err) = extract_file(&asset_file, process.clear_cache) {
-                //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                println!("[{}] Extraction error, details: {}", &process.asset, err);
-                return None;
+            match extract_file(&asset_file, process.clear_cache, last_ts) {
+                Ok(mut res) => {
+                    if !res.0.is_empty() {
+                        down_times.append(&mut res.0);
+                    }
+                    last_ts = res.1;
+                }
+                Err(err) => {
+                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                    println!("[{}] Extraction error, details: {}", &process.asset, err);
+                    return None;
+                }
             }
             if first_iter {
                 first_iter = false;
             }
         }
     }
-    Some((vec![], DatePeriod::new(&start_date, &end_date)))
+    Some((down_times, DatePeriod::new(&start_date, &end_date)))
 }
 
 fn month_to_string(month: u32) -> String {

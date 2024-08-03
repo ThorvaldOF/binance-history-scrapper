@@ -4,8 +4,9 @@ use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
 use crate::utils::errors::ScrapperError;
+use crate::utils::manifest::TimePeriod;
 
-pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {
+pub fn extract_file(asset_file: &AssetFile, clear_cache: bool, mut last_ts: u64) -> Result<(Vec<TimePeriod>, u64), ScrapperError> {
     let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
     if metadata(&output_file_path).is_ok() {
         remove_file(output_file_path.clone())?;
@@ -28,14 +29,25 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), Scr
 
     let mut csv_writer = WriterBuilder::new().from_writer(output_file);
 
+    let mut down_periods: Vec<TimePeriod> = vec![];
     for result in csv_reader.records() {
         let record = result?;
+        //TODO: new error type
+        let ts_str = record.get(0).ok_or(ScrapperError::IntegrityError)?;
+        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::IntegrityError)?;
+
+        if ts - last_ts > asset_file.get_ts_factor() {
+            let down_period = TimePeriod::new(last_ts, ts);
+            down_periods.push(down_period);
+        }
+
         csv_writer.write_record(filter_record(record).iter())?;
+        last_ts = ts;
     }
     if clear_cache {
         remove_file(source_path)?;
     }
-    Ok(())
+    Ok((down_periods, last_ts))
 }
 
 fn filter_record(record: StringRecord) -> StringRecord {

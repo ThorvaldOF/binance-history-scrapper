@@ -1,4 +1,5 @@
 use ureq::Agent;
+use crate::input::GRANULARITIES;
 
 pub const STABLE_COIN: &str = "USDT";
 const LOCAL_PATH: &str = "./binance_data/";
@@ -12,6 +13,7 @@ pub struct AssetFile {
     year: u32,
     month: u32,
     month_prefix: String,
+    ts_factor: u64,
     pub agent: Agent,
 }
 
@@ -23,7 +25,18 @@ impl AssetFile {
             String::new()
         };
 
-        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix, agent }
+        let mut ts_factor: u64 = 0;
+        for grn_pair in GRANULARITIES {
+            if granularity == grn_pair.0 {
+                ts_factor = grn_pair.1;
+            }
+        }
+        if ts_factor == 0 {
+            //TODO: better error handling
+            panic!("Couldn't define a timestamp factor for your granularity");
+        }
+
+        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix, agent, ts_factor }
     }
 
     pub fn get_file_name(&self) -> String {
@@ -48,6 +61,9 @@ impl AssetFile {
 
     fn get_local_directory(&self, directory: &str) -> String {
         format!("{}{}{}/{}{}/", LOCAL_PATH, directory, self.granularity, self.asset, STABLE_COIN)
+    }
+    pub fn get_ts_factor(&self) -> u64 {
+        self.ts_factor
     }
 }
 
