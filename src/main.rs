@@ -4,14 +4,16 @@ mod extract;
 mod utils;
 mod tests;
 
-use std::{fs, io, thread};
+use std::{fs, thread};
+use std::fmt::format;
 use std::ops::Sub;
 use std::sync::{Arc, Mutex};
-use chrono::{Datelike, Duration, TimeZone};
+use std::time::Duration;
+use chrono::{Datelike, TimeZone};
 use chrono::prelude::Local;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, AgentBuilder};
-use zip::DateTime;
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
 use crate::extract::{extract_file};
@@ -33,7 +35,6 @@ pub struct ProcessData {
 fn main() {
     let settings = input::process_input();
     let clear_cache = settings.clear_cache;
-
     handle_processes(settings);
 
     if clear_cache {
@@ -43,6 +44,8 @@ fn main() {
 }
 
 fn handle_processes(settings: Settings) {
+    let m = MultiProgress::new();
+
     let mut processes_vec: Vec<ProcessData> = vec![];
     for asset in settings.assets {
         let process_data = ProcessData { asset, granularity: settings.granularity.clone(), clear_cache: settings.clear_cache };
@@ -55,7 +58,8 @@ fn handle_processes(settings: Settings) {
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
         let manifest_clone = Arc::clone(&manifest);
-        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone));
+        let multi_progress = m.clone();
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, multi_progress));
         handles.push(handle);
     }
 
@@ -76,8 +80,7 @@ fn handle_processes(settings: Settings) {
     };
 }
 
-//START END DATE
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, multi_progress: MultiProgress) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
@@ -95,8 +98,7 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
 
         let process_data = processes.remove(0);
         drop(processes);
-        println!("[{}] Processing...", process_data.asset);
-        let results = process(process_data.clone(), agent.clone());
+        let results = process(process_data.clone(), agent.clone(), multi_progress.clone());
         if let Some((down_times, date_period)) = results {
             let mut manifest = match manifest.lock() {
                 Ok(man) => man,
@@ -114,7 +116,8 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
 }
 
 //TODO: refactoring
-fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
+fn process(process: ProcessData, agent: Agent, multi_progress: MultiProgress) -> Option<(Vec<TimePeriod>, DatePeriod)> {
+    //TODO: regrouper tout dans un struct, et calculer en amont les dates (thread principal)
     let today = Local::now();
     let start_time: (i32, u32) = if today.month() <= 2 {
         let new_month = if today.month() == 2 {
@@ -132,6 +135,26 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
     let mut last_ts: u64 = 0;
     let end_date = format!("{}-{}", month_to_string(start_time.1), start_time.0);
     let mut down_times: Vec<TimePeriod> = vec![];
+
+    let full_years = start_time.0 - BINANCE_BIRTH - 1;
+    let bar_size = full_years as u32 * 12 + start_time.1;
+
+    //TODO: calculate length of bar
+    let sty = ProgressStyle::with_template(
+        "[{prefix}] {bar:40.green/blue} {pos:>7}/{len:10} {msg}",
+    )
+        .unwrap()
+        .progress_chars("##-");
+    let err_sty = ProgressStyle::with_template(
+        "[{prefix}] {bar:40.red/white} {pos:>7}/{len:10} {msg}",
+    )
+        .unwrap()
+        .progress_chars("##-");
+
+    let pb = multi_progress.add(ProgressBar::new(bar_size as u64));
+    pb.set_style(sty);
+    pb.set_prefix(process.asset.clone());
+
     'process: for year in (BINANCE_BIRTH..=start_time.0).rev() {
         let mut max_month = 12;
         if year == start_time.0 {
@@ -144,7 +167,7 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
                 match err {
                     ScrapperError::NoOnlineData => {
                         if first_iter {
-                            println!("[{}] No data available", &process.asset);
+                            pb.finish_with_message("no data available");
                             return None;
                         } else {
                             println!("[{}] Finished, no data available before {}/{} (included)", &process.asset, month, year);
@@ -154,7 +177,8 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
                     }
                     _ => {
                         //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                        println!("[{}] Download error, details: {}", &process.asset, err);
+                        pb.set_style(err_sty);
+                        pb.finish_with_message(format!("download error: {}", err));
                         return None;
                     }
                 };
@@ -168,15 +192,18 @@ fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DateP
                 }
                 Err(err) => {
                     //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                    println!("[{}] Extraction error, details: {}", &process.asset, err);
+                    pb.set_style(err_sty);
+                    pb.finish_with_message(format!("extraction error: {}", err));
                     return None;
                 }
             }
             if first_iter {
                 first_iter = false;
             }
+            pb.inc(1);
         }
     }
+    pb.finish_with_message(format!("last data {}", start_date));
     Some((down_times, DatePeriod::new(&start_date, &end_date)))
 }
 
