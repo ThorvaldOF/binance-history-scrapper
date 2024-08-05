@@ -6,7 +6,7 @@ use crate::utils::asset_file::AssetFile;
 use crate::utils::errors::ScrapperError;
 use crate::utils::manifest::TimePeriod;
 
-pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(Vec<TimePeriod>), ScrapperError> {
+pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<TimePeriod>, ScrapperError> {
     let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
     if metadata(&output_file_path).is_ok() {
         remove_file(output_file_path.clone())?;
@@ -36,7 +36,7 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(Vec<Ti
         //TODO: new error type
         let ts_str = record.get(0).ok_or(ScrapperError::IntegrityError)?;
         let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::IntegrityError)?;
-        
+
         if last_ts == 0 {
             last_ts = ts;
         }

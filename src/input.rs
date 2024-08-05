@@ -1,7 +1,6 @@
 use std::{env};
 use serde_json::Value;
 use crate::utils::asset_file::STABLE_COIN;
-use clap::Args;
 
 pub const GRANULARITIES: [(&str, u64); 13] = [
     ("1s", 1_000),

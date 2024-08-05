@@ -5,12 +5,8 @@ mod utils;
 mod tests;
 
 use std::{fs, thread};
-use std::ops::Sub;
 use std::sync::{Arc, Mutex};
-use chrono::{Datelike, TimeZone};
-use chrono::prelude::Local;
-use indicatif::{MultiProgress, ProgressStyle};
-use serde::{Deserialize, Serialize};
+use indicatif::{MultiProgress};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
@@ -51,8 +47,7 @@ fn handle_processes(settings: Settings) {
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
         let manifest_clone = Arc::clone(&manifest);
-        let multi_progress = multi_progress.clone();
-        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, multi_progress));
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone));
         handles.push(handle);
     }
 
@@ -73,7 +68,7 @@ fn handle_processes(settings: Settings) {
     };
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, multi_progress: MultiProgress) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
@@ -114,7 +109,6 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
     process.init_progress_bar();
     let end_time = process.get_end();
     let mut first_iter = true;
-    let mut start_date = String::new();
     let mut start_time = end_time;
     let end_date = format!("{}-{}", month_to_string(end_time.1), end_time.0);
     let mut down_times: Vec<TimePeriod> = vec![];
@@ -164,7 +158,7 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
         }
     }
 
-    start_date = format!("{}-{}", month_to_string(start_time.1), start_time.0);
+    let start_date = format!("{}-{}", month_to_string(start_time.1), start_time.0);
     process.finish_progress_bar(&format!("last data {}", start_date), "green/white");
     Some((down_times, DatePeriod::new(&start_date, &end_date)))
 }

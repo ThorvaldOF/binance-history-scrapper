@@ -44,7 +44,7 @@ impl Manifest {
     }
     pub fn add_down_time(&mut self, period: &str, time_period: TimePeriod) {
         self.check_period(period);
-        let mut current = self.periods.get_mut(period).unwrap();
+        let current = self.periods.get_mut(period).unwrap();
         for down in &current.down_times {
             if down.start == time_period.start && down.end == time_period.end {
                 return;
@@ -54,7 +54,7 @@ impl Manifest {
     }
     pub fn add_asset(&mut self, period: &str, asset: &str, date_period: DatePeriod) {
         self.check_period(period);
-        let mut current = self.periods.get_mut(period).unwrap();
+        let current = self.periods.get_mut(period).unwrap();
         current.assets.insert(asset.to_string(), date_period);
     }
 
