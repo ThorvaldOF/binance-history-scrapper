@@ -6,7 +6,7 @@ mod tests;
 
 use std::{fs, thread};
 use std::sync::{Arc, Mutex};
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
@@ -30,6 +30,7 @@ fn main() {
     println!("Scrapping completed, you can find your output in 'results' directory");
 }
 
+//TODO: check to either keep all bars for display, or simplify and delete them when done
 fn handle_processes(settings: Settings) {
     let multi_progress = MultiProgress::new();
 
@@ -107,9 +108,11 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
             for down_time in down_times {
                 manifest.add_down_time(&process_data.granularity, down_time);
             }
+            drop(manifest);
         }
         if let Ok(master_bar) = master_bar.lock() {
             master_bar.inc(1);
+            drop(master_bar);
         }
     }
 }
