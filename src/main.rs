@@ -6,7 +6,7 @@ mod tests;
 
 use std::{fs, thread};
 use std::sync::{Arc, Mutex};
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
@@ -43,9 +43,12 @@ fn handle_processes(settings: Settings) {
     let manifest = Arc::new(Mutex::new(Manifest::new()));
     let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_size as u64))));
 
-    master_bar.lock().unwrap().set_style(ProgressStyle::default_bar()
-        .template("[ASSETS] {wide_bar} {percent}%").unwrap()
-        .progress_chars("#>-"));
+
+    master_bar.lock().unwrap().set_style(ProgressStyle::with_template(
+        "[TOTAL] {bar:75.white/white} {pos:>4}/{len:7}",
+    )
+        .unwrap()
+        .progress_chars("█░"));
 
     let mut handles = vec![];
     for _ in 0..4 {
@@ -111,7 +114,6 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
     }
 }
 
-//TODO: master progress bar
 fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
     process.init_progress_bar();
     let end_time = process.get_end();
