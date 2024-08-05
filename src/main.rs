@@ -5,11 +5,13 @@ mod utils;
 mod tests;
 
 use std::{fs, io, thread};
+use std::ops::Sub;
 use std::sync::{Arc, Mutex};
-use chrono::Datelike;
+use chrono::{Datelike, Duration, TimeZone};
 use chrono::prelude::Local;
 use serde::{Deserialize, Serialize};
 use ureq::{Agent, AgentBuilder};
+use zip::DateTime;
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
 use crate::extract::{extract_file};
@@ -111,17 +113,29 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
     }
 }
 
+//TODO: refactoring
 fn process(process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
     let today = Local::now();
+    let start_time: (i32, u32) = if today.month() <= 2 {
+        let new_month = if today.month() == 2 {
+            12
+        } else {
+            11
+        };
+        (today.year() - 1, new_month)
+    } else {
+        (today.year(), today.month() - 2)
+    };
+
     let mut first_iter = true;
     let mut start_date = String::new();
     let mut last_ts: u64 = 0;
-    let end_date = format!("{}-{}", month_to_string(today.month()), today.year());
+    let end_date = format!("{}-{}", month_to_string(start_time.1), start_time.0);
     let mut down_times: Vec<TimePeriod> = vec![];
-    'process: for year in (BINANCE_BIRTH..today.year()).rev() {
+    'process: for year in (BINANCE_BIRTH..=start_time.0).rev() {
         let mut max_month = 12;
-        if year == today.year() {
-            max_month = today.month();
+        if year == start_time.0 {
+            max_month = start_time.1;
         }
         for month in (1..=max_month).rev() {
             let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());

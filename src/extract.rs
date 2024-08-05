@@ -36,6 +36,7 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool, mut last_ts: u64)
         let ts_str = record.get(0).ok_or(ScrapperError::IntegrityError)?;
         let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::IntegrityError)?;
 
+        //TODO: exception if last_ts = 0 (cuz it's initialization)
         if ts - last_ts > asset_file.get_ts_factor() {
             let down_period = TimePeriod::new(last_ts, ts);
             down_periods.push(down_period);
