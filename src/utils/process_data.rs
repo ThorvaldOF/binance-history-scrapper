@@ -27,7 +27,7 @@ impl ProcessData {
 
         let pb = self.multi_progress.add(ProgressBar::new(bar_size as u64));
         pb.set_style(Self::get_progress_bar_style("white/grey"));
-        pb.set_prefix(self.asset.clone());
+        pb.set_prefix(format!("[{}]", self.asset.clone()));
         self.progress_bar = Some(pb);
     }
 
@@ -55,13 +55,13 @@ impl ProcessData {
     pub fn get_granularity(&self) -> String {
         self.granularity.clone()
     }
-    fn get_progress_bar_style(color: &str) -> ProgressStyle {
-        let template = format!("{}{}{}", "[{prefix}] {bar:40.", color, "} {pos:>7}/{len:10} {msg}");
+    pub fn get_progress_bar_style(color: &str) -> ProgressStyle {
+        let template = format!("{}{}{}", "{prefix:<6} {bar:50.", color, "} {percent:>4}% {msg:>4}");
         ProgressStyle::with_template(
             &template,
         )
             .unwrap()
-            .progress_chars("##-")
+            .progress_chars("#>-")
     }
 }
 

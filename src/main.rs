@@ -6,7 +6,7 @@ mod tests;
 
 use std::{fs, thread};
 use std::sync::{Arc, Mutex};
-use indicatif::{MultiProgress};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
@@ -19,8 +19,6 @@ use crate::utils::process_data::ProcessData;
 const BINANCE_BIRTH: i32 = 2017;
 
 //TODO: check all the project and rename stuff
-
-//TODO: Some kind of progress bar
 fn main() {
     let settings = input::process_input();
     let clear_cache = settings.clear_cache;
@@ -40,14 +38,21 @@ fn handle_processes(settings: Settings) {
         let process_data = ProcessData::new(&settings.granularity, &asset, settings.clear_cache, multi_progress.clone());
         processes_vec.push(process_data);
     }
+    let processes_size = processes_vec.len();
     let processes = Arc::new(Mutex::new(processes_vec));
     let manifest = Arc::new(Mutex::new(Manifest::new()));
+    let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_size as u64))));
+
+    master_bar.lock().unwrap().set_style(ProgressStyle::default_bar()
+        .template("[ASSETS] {wide_bar} {percent}%").unwrap()
+        .progress_chars("#>-"));
 
     let mut handles = vec![];
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
         let manifest_clone = Arc::clone(&manifest);
-        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone));
+        let master_bar_clone = Arc::clone(&master_bar);
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, master_bar_clone));
         handles.push(handle);
     }
 
@@ -68,7 +73,7 @@ fn handle_processes(settings: Settings) {
     };
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
     loop {
@@ -100,11 +105,13 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
                 manifest.add_down_time(&process_data.granularity, down_time);
             }
         }
+        if let Ok(master_bar) = master_bar.lock() {
+            master_bar.inc(1);
+        }
     }
 }
 
 //TODO: master progress bar
-//TODO: refactoring
 fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
     process.init_progress_bar();
     let end_time = process.get_end();
