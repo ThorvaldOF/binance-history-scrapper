@@ -5,8 +5,47 @@ use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
 use crate::utils::errors::ScrapperError;
 use crate::utils::manifest::TimePeriod;
+use crate::utils::month_year::MonthYear;
+use crate::utils::process_data::ProcessData;
 
-pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<TimePeriod>, ScrapperError> {
+pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Option<(Vec<TimePeriod>, TimePeriod)> {
+    let end_time = process.get_end();
+
+    let global_asset_file = AssetFile::new(&process.asset, &process.granularity, start_time.clone());
+
+    if let Err(err) = init_result_file(&global_asset_file) {
+        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+        process.log_bar(&format!("extraction error: {}", err));
+        process.finish_progress_bar();
+        return None;
+    }
+
+    for year in start_time.get_year()..=end_time.get_year() {
+        let max_month = if year == end_time.get_year() {
+            end_time.get_month()
+        } else {
+            12
+        };
+        let min_month = if year == start_time.get_year() {
+            start_time.get_month()
+        } else { 1 };
+        for month in min_month..=max_month {
+            let month_year = MonthYear::new(month, year);
+            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone());
+            if let Err(err) = extract_file(&asset_file, process.clear_cache) {
+                //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                process.log_bar(&format!("extraction error: {}", err));
+                process.finish_progress_bar();
+                return None;
+            }
+        }
+    }
+    let asset_data = post_treatment(&global_asset_file).ok()?;
+    process.finish_progress_bar();
+    Some(asset_data)
+}
+
+pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {
     let output_file_path = asset_file.get_result_file_path();
 
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
@@ -29,37 +68,16 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<Tim
 
     let mut csv_writer = WriterBuilder::new().from_writer(output_file);
 
-    let mut last_ts = 0;
-    let mut down_periods: Vec<TimePeriod> = vec![];
     for result in csv_reader.records() {
         let record = result?;
-        let ts_str = record.get(0).ok_or(ScrapperError::ParseError)?;
-        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::ParseError)?;
-
-        if last_ts == 0 {
-            last_ts = ts;
-        }
-        if ts - last_ts > asset_file.get_ts_factor() {
-            let down_period = TimePeriod::new(last_ts, ts);
-            down_periods.push(down_period);
-        }
-
         csv_writer.write_record(filter_record(record).iter())?;
-        last_ts = ts;
     }
     if clear_cache {
         remove_file(source_path)?;
     }
-    Ok(down_periods)
-}
-
-pub fn init_result_file(granularity: &str, asset: &str) -> Result<(), ScrapperError> {
-    let path = AssetFile::get_result_file_path_from_values(granularity, asset);
-    if metadata(&path).is_ok() {
-        remove_file(path)?;
-    }
     Ok(())
 }
+
 
 fn filter_record(record: StringRecord) -> StringRecord {
     let collected_record: Vec<&str> = record.iter().collect();
@@ -71,3 +89,43 @@ fn filter_record(record: StringRecord) -> StringRecord {
     }
     processed_record
 }
+
+pub fn init_result_file(asset_file: &AssetFile) -> Result<(), ScrapperError> {
+    let path = asset_file.get_result_file_path();
+    if metadata(&path).is_ok() {
+        remove_file(path)?;
+    }
+    Ok(())
+}
+
+pub fn post_treatment(asset_file: &AssetFile) -> Result<(Vec<TimePeriod>, TimePeriod), ScrapperError> {
+    let path = asset_file.get_result_file_path();
+    let file = File::open(path)?;
+    let mut reader = ReaderBuilder::new().has_headers(false).from_reader(file);
+    let mut start_ts = 0;
+    let mut last_ts = 0;
+    let mut down_periods: Vec<TimePeriod> = vec![];
+
+    for result in reader.records() {
+        let record = result?;
+        let ts_str = record.get(0).ok_or(ScrapperError::ParseError)?;
+        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::ParseError)?;
+
+        if last_ts == 0 {
+            last_ts = ts;
+        }
+        if start_ts == 0 {
+            start_ts = ts;
+        }
+        if ts - last_ts > asset_file.get_ts_factor() {
+            let down_period = TimePeriod::new(last_ts, ts);
+            down_periods.push(down_period);
+        }
+        if ts < last_ts {
+            return Err(ScrapperError::IntegrityError);
+        }
+        last_ts = ts;
+    }
+    Ok((down_periods, TimePeriod::new(start_ts, last_ts)))
+}
+

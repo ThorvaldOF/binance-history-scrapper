@@ -15,22 +15,11 @@ impl TimePeriod {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DatePeriod {
-    start: String,
-    end: String,
-}
-
-impl DatePeriod {
-    pub fn new(start: &str, end: &str) -> DatePeriod {
-        DatePeriod { start: start.to_string(), end: end.to_string() }
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     down_times: Vec<TimePeriod>,
-    assets: HashMap<String, DatePeriod>,
+    assets: HashMap<String, TimePeriod>,
     #[serde(skip_serializing)]
     granularity: String,
 }
@@ -48,8 +37,8 @@ impl Manifest {
         }
         self.down_times.push(time_period);
     }
-    pub fn add_asset(&mut self, asset: &str, date_period: DatePeriod) {
-        self.assets.insert(asset.to_string(), date_period);
+    pub fn add_asset(&mut self, asset: &str, time_period: TimePeriod) {
+        self.assets.insert(asset.to_string(), time_period);
     }
 
     pub fn save(&self) -> std::io::Result<()> {

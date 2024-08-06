@@ -9,12 +9,11 @@ use std::sync::{Arc, Mutex};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
-use crate::download::{download_file};
-use crate::extract::{extract_file, init_result_file};
+use crate::download::{download_asset};
+use crate::extract::{extract_asset};
 use crate::input::Settings;
 use crate::utils::errors::ScrapperError;
-use crate::utils::manifest::{DatePeriod, Manifest, TimePeriod};
-use crate::utils::month_year::MonthYear;
+use crate::utils::manifest::{Manifest, TimePeriod};
 use crate::utils::process_data::ProcessData;
 
 const BINANCE_BIRTH: i32 = 2017;
@@ -118,82 +117,11 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
     }
 }
 
-fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, DatePeriod)> {
+fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, TimePeriod)> {
     process.init_progress_bar();
-    let end_time = process.get_end();
-    let mut first_iter = true;
-    let mut start_time = end_time.clone();
-    let mut down_times: Vec<TimePeriod> = vec![];
 
-    'downloads: for year in (BINANCE_BIRTH..=end_time.get_year()).rev() {
-        let mut max_month = 12;
-        if year == end_time.get_year() {
-            max_month = end_time.get_month();
-        }
-        for month in (1..=max_month).rev() {
-            let month_year = MonthYear::new(month, year);
-            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone(), agent.clone());
-            if let Err(err) = download_file(&asset_file) {
-                match err {
-                    ScrapperError::NoOnlineData => {
-                        if first_iter {
-                            process.finish_progress_bar();
-                            return None;
-                        } else {
-                            break 'downloads;
-                        }
-                    }
-                    _ => {
-                        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                        process.log_bar(&format!("download error: {}", err));
-                        process.finish_progress_bar();
-                        return None;
-                    }
-                };
-            }
-
-            if first_iter {
-                first_iter = false;
-            }
-            start_time = month_year;
-            process.increment_progress_bar();
-        }
+    if let Some(start_time) = download_asset(&mut process, agent) {
+        return extract_asset(&mut process, start_time);
     }
-
-    if let Err(err) = init_result_file(&process.granularity, &process.asset) {
-        process.log_bar(&format!("extraction error: {}", err));
-        process.finish_progress_bar();
-        return None;
-    }
-
-    'extracts: for year in start_time.get_year()..=end_time.get_year() {
-        let max_month = if year == end_time.get_year() {
-            end_time.get_month()
-        } else {
-            12
-        };
-        let min_month = if year == start_time.get_year() {
-            start_time.get_month()
-        } else { 1 };
-        for month in min_month..=max_month {
-            let month_year = MonthYear::new(month, year);
-            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone(), agent.clone());
-            match extract_file(&asset_file, process.clear_cache) {
-                Ok(mut res) => {
-                    if !res.is_empty() {
-                        down_times.append(&mut res);
-                    }
-                }
-                Err(err) => {
-                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                    process.log_bar(&format!("extraction error: {}", err));
-                    process.finish_progress_bar();
-                    return None;
-                }
-            }
-        }
-    }
-
-    process.finish_progress_bar();
-    Some((down_times, DatePeriod::new(&start_time.to_string(), &end_time.to_string())))
+    None
 }

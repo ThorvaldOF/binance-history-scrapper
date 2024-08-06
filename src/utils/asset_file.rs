@@ -13,11 +13,10 @@ pub struct AssetFile {
     granularity: String,
     month_year: MonthYear,
     ts_factor: u64,
-    pub agent: Agent,
 }
 
 impl AssetFile {
-    pub fn new(asset: &str, granularity: &str, month_year: MonthYear, agent: Agent) -> AssetFile {
+    pub fn new(asset: &str, granularity: &str, month_year: MonthYear) -> AssetFile {
         let mut ts_factor: u64 = 0;
         for grn_pair in GRANULARITIES {
             if granularity == grn_pair.0 {
@@ -29,7 +28,7 @@ impl AssetFile {
             panic!("Couldn't define a timestamp factor for your granularity");
         }
 
-        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), month_year, agent, ts_factor }
+        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), month_year, ts_factor }
     }
 
     pub fn get_file_name(&self) -> String {
