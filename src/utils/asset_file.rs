@@ -38,7 +38,7 @@ impl AssetFile {
         self.get_local_directory(DOWNLOADS_PATH)
     }
     pub fn get_extract_directory(&self) -> String {
-        self.get_local_directory(RESULTS_PATH)
+        format!("{}{}{}/", LOCAL_PATH, RESULTS_PATH, self.granularity)
     }
     pub fn get_result_file_path(&self) -> String {
         Self::get_result_file_path_from_values(&self.granularity, &self.asset)

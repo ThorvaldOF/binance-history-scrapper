@@ -53,7 +53,6 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), Scr
 
     let mut archive = ZipArchive::new(source_file)?;
 
-    create_dir_all(asset_file.get_extract_directory())?;
 
     let mut entry = archive.by_index(0)?;
     let output_file = OpenOptions::new()
@@ -95,6 +94,7 @@ pub fn init_result_file(asset_file: &AssetFile) -> Result<(), ScrapperError> {
     if metadata(&path).is_ok() {
         remove_file(path)?;
     }
+    create_dir_all(asset_file.get_extract_directory())?;
     Ok(())
 }
 
