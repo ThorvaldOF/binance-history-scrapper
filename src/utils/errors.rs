@@ -5,6 +5,7 @@ pub enum ScrapperError {
     ZipError(zip::result::ZipError),
     CsvError(csv::Error),
     NetworkError(ureq::Error),
+    ParseError,
     IntegrityError,
     NoOnlineData,
 }
@@ -16,6 +17,7 @@ impl fmt::Display for ScrapperError {
             ScrapperError::ZipError(e) => { write!(f, "Zip error {}", e) }
             ScrapperError::CsvError(e) => { write!(f, "Csv error: {}", e) }
             ScrapperError::NetworkError(e) => { write!(f, "Network error: {}", e) }
+            ScrapperError::ParseError => { write!(f, "Couldn't parse value") }
             ScrapperError::IntegrityError => { write!(f, "Integrity couldn't be checked") }
             ScrapperError::NoOnlineData => { write!(f, "No data available on Binance servers") }
         }

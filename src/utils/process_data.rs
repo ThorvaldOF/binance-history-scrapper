@@ -32,10 +32,11 @@ impl ProcessData {
         self.progress_bar = Some(pb);
     }
 
-    pub fn finish_progress_bar(&mut self, message: &str, style: &str) {
+    pub fn log_bar(&mut self, msg: &str) {
+        self.multi_progress.println(msg).expect("TODO: panic message");
+    }
+    pub fn finish_progress_bar(&mut self) {
         if let Some(pb) = self.progress_bar.as_mut() {
-            pb.set_style(Self::get_progress_bar_style(style));
-            pb.finish_with_message(message.to_string());
             self.multi_progress.remove(pb);
         }
     }

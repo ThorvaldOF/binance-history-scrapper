@@ -41,6 +41,12 @@ impl AssetFile {
     pub fn get_extract_directory(&self) -> String {
         self.get_local_directory(RESULTS_PATH)
     }
+    pub fn get_result_file_path(&self) -> String {
+        Self::get_result_file_path_from_values(&self.granularity, &self.asset)
+    }
+    pub fn get_result_file_path_from_values(granularity: &str, asset: &str) -> String {
+        format!("{}{}{}/{}{}.csv", LOCAL_PATH, RESULTS_PATH, granularity, asset, STABLE_COIN)
+    }
 
     pub fn get_full_file_name(&self, extension: &str) -> String {
         self.get_file_name() + extension

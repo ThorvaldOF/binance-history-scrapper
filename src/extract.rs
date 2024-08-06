@@ -1,4 +1,4 @@
-use std::fs::{File, create_dir_all, remove_file, metadata};
+use std::fs::{File, create_dir_all, remove_file, metadata, OpenOptions};
 use std::io::{Read};
 use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use zip::ZipArchive;
@@ -7,10 +7,7 @@ use crate::utils::errors::ScrapperError;
 use crate::utils::manifest::TimePeriod;
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<TimePeriod>, ScrapperError> {
-    let output_file_path = asset_file.get_extract_directory() + &asset_file.get_full_file_name(".csv");
-    if metadata(&output_file_path).is_ok() {
-        remove_file(output_file_path.clone())?;
-    }
+    let output_file_path = asset_file.get_result_file_path();
 
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
     let source_file = File::open(source_path.clone())?;
@@ -20,7 +17,10 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<Tim
     create_dir_all(asset_file.get_extract_directory())?;
 
     let mut entry = archive.by_index(0)?;
-    let output_file = File::create(&output_file_path)?;
+    let output_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&output_file_path)?;
 
     let mut csv_content = String::new();
     entry.read_to_string(&mut csv_content)?;
@@ -33,9 +33,8 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<Tim
     let mut down_periods: Vec<TimePeriod> = vec![];
     for result in csv_reader.records() {
         let record = result?;
-        //TODO: new error type
-        let ts_str = record.get(0).ok_or(ScrapperError::IntegrityError)?;
-        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::IntegrityError)?;
+        let ts_str = record.get(0).ok_or(ScrapperError::ParseError)?;
+        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::ParseError)?;
 
         if last_ts == 0 {
             last_ts = ts;
@@ -52,6 +51,14 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<Vec<Tim
         remove_file(source_path)?;
     }
     Ok(down_periods)
+}
+
+pub fn init_result_file(granularity: &str, asset: &str) -> Result<(), ScrapperError> {
+    let path = AssetFile::get_result_file_path_from_values(granularity, asset);
+    if metadata(&path).is_ok() {
+        remove_file(path)?;
+    }
+    Ok(())
 }
 
 fn filter_record(record: StringRecord) -> StringRecord {

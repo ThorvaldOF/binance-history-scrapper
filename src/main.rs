@@ -10,7 +10,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
 use crate::utils::asset_file::AssetFile;
 use crate::download::{download_file};
-use crate::extract::{extract_file};
+use crate::extract::{extract_file, init_result_file};
 use crate::input::Settings;
 use crate::utils::errors::ScrapperError;
 use crate::utils::manifest::{DatePeriod, Manifest, TimePeriod};
@@ -133,12 +133,11 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
         for month in (1..=max_month).rev() {
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone(), agent.clone());
-
             if let Err(err) = download_file(&asset_file) {
                 match err {
                     ScrapperError::NoOnlineData => {
                         if first_iter {
-                            process.finish_progress_bar("no data available", "yellow/white");
+                            process.finish_progress_bar();
                             return None;
                         } else {
                             break 'downloads;
@@ -146,23 +145,13 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
                     }
                     _ => {
                         //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                        process.finish_progress_bar(&format!("download error: {}", err), "red/white");
+                        process.log_bar(&format!("download error: {}", err));
+                        process.finish_progress_bar();
                         return None;
                     }
                 };
             }
-            match extract_file(&asset_file, process.clear_cache) {
-                Ok(mut res) => {
-                    if !res.is_empty() {
-                        down_times.append(&mut res);
-                    }
-                }
-                Err(err) => {
-                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                    process.finish_progress_bar(&format!("extraction error: {}", err), "red/white");
-                    return None;
-                }
-            }
+
             if first_iter {
                 first_iter = false;
             }
@@ -171,6 +160,40 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
         }
     }
 
-    process.finish_progress_bar(&format!("last data {}", start_time.to_string()), "green/white");
+    if let Err(err) = init_result_file(&process.granularity, &process.asset) {
+        process.log_bar(&format!("extraction error: {}", err));
+        process.finish_progress_bar();
+        return None;
+    }
+
+    'extracts: for year in start_time.get_year()..=end_time.get_year() {
+        let max_month = if year == end_time.get_year() {
+            end_time.get_month()
+        } else {
+            12
+        };
+        let min_month = if year == start_time.get_year() {
+            start_time.get_month()
+        } else { 1 };
+        for month in min_month..=max_month {
+            let month_year = MonthYear::new(month, year);
+            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone(), agent.clone());
+            match extract_file(&asset_file, process.clear_cache) {
+                Ok(mut res) => {
+                    if !res.is_empty() {
+                        down_times.append(&mut res);
+                    }
+                }
+                Err(err) => {
+                    //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
+                    process.log_bar(&format!("extraction error: {}", err));
+                    process.finish_progress_bar();
+                    return None;
+                }
+            }
+        }
+    }
+
+    process.finish_progress_bar();
     Some((down_times, DatePeriod::new(&start_time.to_string(), &end_time.to_string())))
 }
