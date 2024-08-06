@@ -92,7 +92,7 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
             break;
         }
 
-        let mut process_data = processes.remove(0);
+        let process_data = processes.remove(0);
         drop(processes);
         match process(process_data.clone(), agent.clone()) {
             Err(err) => {

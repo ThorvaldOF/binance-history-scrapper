@@ -1,4 +1,3 @@
-use ureq::Agent;
 use crate::input::GRANULARITIES;
 use crate::utils::month_year::MonthYear;
 
