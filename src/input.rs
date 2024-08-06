@@ -2,13 +2,27 @@ use std::{env};
 use serde_json::Value;
 use crate::utils::asset_file::STABLE_COIN;
 
-const GRANULARITIES: [&str; 13] = ["1s", "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d"];
+pub const GRANULARITIES: [(&str, u64); 13] = [
+    ("1s", 1_000),
+    ("1m", 60_000),
+    ("3m", 3 * 60_000),
+    ("5m", 5 * 60_000),
+    ("15m", 15 * 60_000),
+    ("30m", 30 * 60_000),
+    ("1h", 60 * 60_000),
+    ("2h", 2 * 60 * 60_000),
+    ("4h", 4 * 60 * 60_000),
+    ("6h", 6 * 60 * 60_000),
+    ("8h", 8 * 60 * 60_000),
+    ("12h", 12 * 60 * 60_000),
+    ("1d", 24 * 60 * 60_000)];
 
 pub struct Settings {
     pub granularity: String,
     pub assets: Vec<String>,
     pub clear_cache: bool,
 }
+//TODO: confirmation of user settings
 
 pub fn process_input() -> Settings {
     let args: Vec<String> = env::args().collect();
@@ -41,7 +55,7 @@ fn get_flag(args: &Vec<String>, name: &str, default: &str) -> String {
 }
 
 fn check_granularity(granularity: &str) {
-    if !GRANULARITIES.contains(&granularity) {
+    if !GRANULARITIES.iter().any(|&(key, _)| key == granularity) {
         panic!("Invalid granularity, should be one of those {:?}", GRANULARITIES);
     }
 }
@@ -97,12 +111,3 @@ fn get_all_assets() -> Option<Vec<String>> {
 
     Some(asset_pairs)
 }
-
-/*
-fn format_asset(input: &mut String) {
-    *input = input
-        .chars()
-        .filter(|&c| !c.is_whitespace())
-        .collect::<String>()
-        .to_uppercase();
-}*/
