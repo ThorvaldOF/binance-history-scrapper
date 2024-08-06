@@ -9,9 +9,8 @@ use crate::utils::month_year::MonthYear;
 use crate::utils::process_data::ProcessData;
 
 
-pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Option<MonthYear> {
+pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Result<Option<MonthYear>, ScrapperError> {
     let end_time = process.get_end();
-    let mut first_iter = true;
     let mut start_time = end_time.clone();
 
     'downloads: for year in (BINANCE_BIRTH..=end_time.get_year()).rev() {
@@ -25,30 +24,24 @@ pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Option<MonthYe
             if let Err(err) = download_file(&asset_file, agent.clone()) {
                 match err {
                     ScrapperError::NoOnlineData => {
-                        if first_iter {
-                            process.finish_progress_bar();
-                            return None;
-                        } else {
-                            break 'downloads;
-                        }
+                        break 'downloads;
                     }
                     _ => {
-                        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                        process.log_bar(&format!("download error: {}", err));
                         process.finish_progress_bar();
-                        return None;
+                        return Err(err);
                     }
                 };
             }
 
-            if first_iter {
-                first_iter = false;
-            }
             start_time = month_year;
             process.increment_progress_bar();
         }
     }
-    Some(start_time)
+    if start_time.get_year() == end_time.get_year() && start_time.get_month() == end_time.get_month() {
+        Ok(None)
+    } else {
+        Ok(Some(start_time))
+    }
 }
 
 pub fn download_file(asset_file: &AssetFile, agent: Agent) -> Result<(), ScrapperError> {
@@ -75,7 +68,6 @@ fn download(asset_file: &AssetFile, extension: &str, overwrite: bool, agent: Age
     }
     let response = agent.get(&asset_file.get_download_url(extension)).call();
 
-    //TODO: improve that error management
     match response {
         Ok(_) => {}
         Err(error) => {

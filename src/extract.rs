@@ -8,17 +8,12 @@ use crate::utils::manifest::TimePeriod;
 use crate::utils::month_year::MonthYear;
 use crate::utils::process_data::ProcessData;
 
-pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Option<(Vec<TimePeriod>, TimePeriod)> {
+pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result<(Vec<TimePeriod>, TimePeriod), ScrapperError> {
     let end_time = process.get_end();
 
     let global_asset_file = AssetFile::new(&process.asset, &process.granularity, start_time.clone());
 
-    if let Err(err) = init_result_file(&global_asset_file) {
-        //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-        process.log_bar(&format!("extraction error: {}", err));
-        process.finish_progress_bar();
-        return None;
-    }
+    init_result_file(&global_asset_file)?;
 
     for year in start_time.get_year()..=end_time.get_year() {
         let max_month = if year == end_time.get_year() {
@@ -32,17 +27,11 @@ pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Option
         for month in min_month..=max_month {
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone());
-            if let Err(err) = extract_file(&asset_file, process.clear_cache) {
-                //TODO: Pause on error, ask the user to fix the problem, then press enter to continue
-                process.log_bar(&format!("extraction error: {}", err));
-                process.finish_progress_bar();
-                return None;
-            }
+            extract_file(&asset_file, process.clear_cache)?;
         }
     }
-    let asset_data = post_treatment(&global_asset_file).ok()?;
-    process.finish_progress_bar();
-    Some(asset_data)
+    let asset_data = post_treatment(&global_asset_file)?;
+    Ok(asset_data)
 }
 
 pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {

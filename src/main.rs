@@ -18,6 +18,11 @@ use crate::utils::process_data::ProcessData;
 
 const BINANCE_BIRTH: i32 = 2017;
 
+struct FailedProcess {
+    asset: String,
+    error: ScrapperError,
+}
+
 //TODO: check all the project and rename stuff
 fn main() {
     let settings = input::process_input();
@@ -30,7 +35,6 @@ fn main() {
     println!("Scrapping completed, you can find your output in 'results' directory");
 }
 
-//TODO: check to either keep all bars for display, or simplify and delete them when done
 fn handle_processes(settings: Settings) {
     let multi_progress = MultiProgress::new();
 
@@ -43,6 +47,7 @@ fn handle_processes(settings: Settings) {
     let processes = Arc::new(Mutex::new(processes_vec));
     let manifest = Arc::new(Mutex::new(Manifest::new(&settings.granularity.clone())));
     let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_size as u64))));
+    let failed_processes = Arc::new(Mutex::new(vec![]));
 
 
     master_bar.lock().unwrap().set_style(ProgressStyle::with_template(
@@ -51,77 +56,82 @@ fn handle_processes(settings: Settings) {
         .unwrap()
         .progress_chars("█░"));
 
+
     let mut handles = vec![];
     for _ in 0..4 {
         let processes_clone = Arc::clone(&processes);
         let manifest_clone = Arc::clone(&manifest);
         let master_bar_clone = Arc::clone(&master_bar);
-        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, master_bar_clone));
+        let failed_processes_clone = Arc::clone(&failed_processes);
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, master_bar_clone, failed_processes_clone));
         handles.push(handle);
     }
 
     for handle in handles {
         handle.join().unwrap();
     }
-    match manifest.lock() {
-        Ok(man) => {
-            if let Err(err) = man.save() {
-                //TODO: maybe a better error handling
-                println!("Couldn't save manifest, cause: {}", err);
-            }
+    let fails = failed_processes.lock().unwrap();
+    if !fails.is_empty() {
+        println!("{} assets failed, here's the list:", fails.len());
+        for fail in fails.iter() {
+            println!("[{}] => {}", fail.asset, fail.error);
         }
-        Err(err) => {
-            //TODO: maybe a better error handling
-            println!("Couldn't save manifest, cause: {}", err);
-        }
-    };
+        println!("Fix the problems then restart the program");
+    }
+    drop(fails);
+    manifest.lock().unwrap().save().expect("Couldn't save manifest");
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>, failed_processes_res: Arc<Mutex<Vec<FailedProcess>>>) {
     let agent: Agent = AgentBuilder::new()
         .build();
+    let mut failed_processes: Vec<FailedProcess> = vec![];
     loop {
-        let mut processes = match processes.lock() {
-            Ok(data) => data,
-            Err(_) => {
-                //TODO: maybe a better error handling
-                break;
-            }
-        };
+        let mut processes = processes.lock().unwrap();
         if processes.is_empty() {
-            //No process remaining
             break;
         }
 
-        let process_data = processes.remove(0);
+        let mut process_data = processes.remove(0);
         drop(processes);
-        let results = process(process_data.clone(), agent.clone());
-        if let Some((down_times, date_period)) = results {
-            let mut manifest = match manifest.lock() {
-                Ok(man) => man,
-                Err(_) => {
-                    //TODO: maybe a better error handling
-                    continue;
-                }
-            };
-            manifest.add_asset(&process_data.asset, date_period);
-            for down_time in down_times {
-                manifest.add_down_time(down_time);
+        match process(process_data.clone(), agent.clone()) {
+            Err(err) => {
+                failed_processes.push(FailedProcess { asset: process_data.asset, error: err });
+                continue;
             }
-            drop(manifest);
+            Ok(res) => {
+                match res {
+                    None => continue,
+                    Some((down_times, date_period)) => {
+                        let mut manifest = manifest.lock().unwrap();
+                        manifest.add_asset(&process_data.asset, date_period);
+                        for down_time in down_times {
+                            manifest.add_down_time(down_time);
+                        }
+                        drop(manifest);
+                    }
+                }
+            }
         }
         if let Ok(master_bar) = master_bar.lock() {
             master_bar.inc(1);
             drop(master_bar);
         }
     }
+    failed_processes_res.lock().unwrap().extend(failed_processes);
 }
 
-fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, TimePeriod)> {
+fn process(mut process: ProcessData, agent: Agent) -> Result<Option<(Vec<TimePeriod>, TimePeriod)>, ScrapperError> {
     process.init_progress_bar();
 
-    if let Some(start_time) = download_asset(&mut process, agent) {
-        return extract_asset(&mut process, start_time);
-    }
-    None
+    let result = (|| {
+        if let Some(start_time) = download_asset(&mut process, agent)? {
+            let extraction_results = extract_asset(&mut process, start_time)?;
+            return Ok(Some(extraction_results));
+        }
+        Ok(None)
+    })();
+    process.finish_progress_bar();
+
+    result
 }
