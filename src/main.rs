@@ -14,6 +14,7 @@ use crate::extract::{extract_file};
 use crate::input::Settings;
 use crate::utils::errors::ScrapperError;
 use crate::utils::manifest::{DatePeriod, Manifest, TimePeriod};
+use crate::utils::month_year::MonthYear;
 use crate::utils::process_data::ProcessData;
 
 const BINANCE_BIRTH: i32 = 2017;
@@ -41,7 +42,7 @@ fn handle_processes(settings: Settings) {
     }
     let processes_size = processes_vec.len();
     let processes = Arc::new(Mutex::new(processes_vec));
-    let manifest = Arc::new(Mutex::new(Manifest::new()));
+    let manifest = Arc::new(Mutex::new(Manifest::new(&settings.granularity.clone())));
     let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_size as u64))));
 
 
@@ -65,14 +66,14 @@ fn handle_processes(settings: Settings) {
     }
     match manifest.lock() {
         Ok(man) => {
-            if man.save().is_err() {
+            if let Err(err) = man.save() {
                 //TODO: maybe a better error handling
-                println!("Couldn't save manifest");
+                println!("Couldn't save manifest, cause: {}", err);
             }
         }
-        Err(_) => {
+        Err(err) => {
             //TODO: maybe a better error handling
-            println!("Couldn't save manifest");
+            println!("Couldn't save manifest, cause: {}", err);
         }
     };
 }
@@ -104,9 +105,9 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
                     continue;
                 }
             };
-            manifest.add_asset(&process_data.granularity, &process_data.asset, date_period);
+            manifest.add_asset(&process_data.asset, date_period);
             for down_time in down_times {
-                manifest.add_down_time(&process_data.granularity, down_time);
+                manifest.add_down_time(down_time);
             }
             drop(manifest);
         }
@@ -121,17 +122,17 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
     process.init_progress_bar();
     let end_time = process.get_end();
     let mut first_iter = true;
-    let mut start_time = end_time;
-    let end_date = format!("{}-{}", month_to_string(end_time.1), end_time.0);
+    let mut start_time = end_time.clone();
     let mut down_times: Vec<TimePeriod> = vec![];
 
-    'downloads: for year in (BINANCE_BIRTH..=end_time.0).rev() {
+    'downloads: for year in (BINANCE_BIRTH..=end_time.get_year()).rev() {
         let mut max_month = 12;
-        if year == end_time.0 {
-            max_month = end_time.1;
+        if year == end_time.get_year() {
+            max_month = end_time.get_month();
         }
         for month in (1..=max_month).rev() {
-            let asset_file = AssetFile::new(&process.asset, &process.granularity, year, month, agent.clone());
+            let month_year = MonthYear::new(month, year);
+            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone(), agent.clone());
 
             if let Err(err) = download_file(&asset_file) {
                 match err {
@@ -165,21 +166,11 @@ fn process(mut process: ProcessData, agent: Agent) -> Option<(Vec<TimePeriod>, D
             if first_iter {
                 first_iter = false;
             }
-            start_time = (year, month);
+            start_time = month_year;
             process.increment_progress_bar();
         }
     }
 
-    let start_date = format!("{}-{}", month_to_string(start_time.1), start_time.0);
-    process.finish_progress_bar(&format!("last data {}", start_date), "green/white");
-    Some((down_times, DatePeriod::new(&start_date, &end_date)))
-}
-
-fn month_to_string(month: u32) -> String {
-    let prefix = if month < 10 {
-        "0"
-    } else {
-        ""
-    };
-    format!("{}{}", prefix, month)
+    process.finish_progress_bar(&format!("last data {}", start_time.to_string()), "green/white");
+    Some((down_times, DatePeriod::new(&start_time.to_string(), &end_time.to_string())))
 }
