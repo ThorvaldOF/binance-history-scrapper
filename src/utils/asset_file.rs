@@ -1,5 +1,5 @@
-use ureq::Agent;
 use crate::input::GRANULARITIES;
+use crate::utils::month_year::MonthYear;
 
 pub const STABLE_COIN: &str = "USDT";
 const LOCAL_PATH: &str = "./binance_data/";
@@ -10,21 +10,12 @@ const RESULTS_PATH: &str = "results/";
 pub struct AssetFile {
     asset: String,
     granularity: String,
-    year: u32,
-    month: u32,
-    month_prefix: String,
+    month_year: MonthYear,
     ts_factor: u64,
-    pub agent: Agent,
 }
 
 impl AssetFile {
-    pub fn new(asset: &str, granularity: &str, year: i32, month: u32, agent: Agent) -> AssetFile {
-        let month_prefix = if month < 10 {
-            "0".to_string()
-        } else {
-            String::new()
-        };
-
+    pub fn new(asset: &str, granularity: &str, month_year: MonthYear) -> AssetFile {
         let mut ts_factor: u64 = 0;
         for grn_pair in GRANULARITIES {
             if granularity == grn_pair.0 {
@@ -36,17 +27,23 @@ impl AssetFile {
             panic!("Couldn't define a timestamp factor for your granularity");
         }
 
-        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), year: year as u32, month, month_prefix, agent, ts_factor }
+        AssetFile { asset: asset.to_string(), granularity: granularity.to_string(), month_year, ts_factor }
     }
 
     pub fn get_file_name(&self) -> String {
-        format!("{}{}-{}-{}-{}{}", self.asset, STABLE_COIN, self.granularity, self.year, self.month_prefix, self.month)
+        format!("{}{}-{}-{}-{}", self.asset, STABLE_COIN, self.granularity, self.month_year.get_year(), self.month_year.get_month_string())
     }
     pub fn get_download_directory(&self) -> String {
         self.get_local_directory(DOWNLOADS_PATH)
     }
     pub fn get_extract_directory(&self) -> String {
-        self.get_local_directory(RESULTS_PATH)
+        format!("{}{}{}/", LOCAL_PATH, RESULTS_PATH, self.granularity)
+    }
+    pub fn get_result_file_path(&self) -> String {
+        Self::get_result_file_path_from_values(&self.granularity, &self.asset)
+    }
+    pub fn get_result_file_path_from_values(granularity: &str, asset: &str) -> String {
+        format!("{}{}{}/{}{}.csv", LOCAL_PATH, RESULTS_PATH, granularity, asset, STABLE_COIN)
     }
 
     pub fn get_full_file_name(&self, extension: &str) -> String {

@@ -1,13 +1,14 @@
 use chrono::{Datelike, Local};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use crate::{BINANCE_BIRTH};
+use crate::utils::month_year::MonthYear;
 
 #[derive(Clone)]
 pub struct ProcessData {
     pub granularity: String,
     pub asset: String,
     pub clear_cache: bool,
-    end: (i32, u32),
+    end: MonthYear,
     multi_progress: MultiProgress,
     progress_bar: Option<ProgressBar>,
 }
@@ -22,8 +23,8 @@ impl ProcessData {
         if self.progress_bar.is_some() {
             return;
         }
-        let full_years = self.end.0 - BINANCE_BIRTH - 1;
-        let bar_size = full_years as u32 * 12 + self.end.1;
+        let full_years = self.end.get_year() - BINANCE_BIRTH;
+        let bar_size = full_years * 12;
 
         let pb = self.multi_progress.add(ProgressBar::new(bar_size as u64));
         pb.set_style(Self::get_progress_bar_style("white/grey"));
@@ -31,10 +32,11 @@ impl ProcessData {
         self.progress_bar = Some(pb);
     }
 
-    pub fn finish_progress_bar(&mut self, message: &str, style: &str) {
+    pub fn log_bar(&mut self, msg: &str) {
+        self.multi_progress.println(msg).expect("TODO: panic message");
+    }
+    pub fn finish_progress_bar(&mut self) {
         if let Some(pb) = self.progress_bar.as_mut() {
-            pb.set_style(Self::get_progress_bar_style(style));
-            pb.finish_with_message(message.to_string());
             self.multi_progress.remove(pb);
         }
     }
@@ -44,8 +46,8 @@ impl ProcessData {
         }
     }
 
-    pub fn get_end(&self) -> (i32, u32) {
-        self.end
+    pub fn get_end(&self) -> MonthYear {
+        self.end.clone()
     }
     pub fn get_clear_cache(&self) -> bool {
         self.clear_cache
@@ -66,17 +68,17 @@ impl ProcessData {
     }
 }
 
-fn get_end_date() -> (i32, u32) {
+fn get_end_date() -> MonthYear {
     let today = Local::now();
-    let start_date: (i32, u32) = if today.month() <= 2 {
+    let end_date: MonthYear = if today.month() <= 2 {
         let new_month = if today.month() == 2 {
             12
         } else {
             11
         };
-        (today.year() - 1, new_month)
+        MonthYear::new(new_month, today.year() - 1)
     } else {
-        (today.year(), today.month() - 2)
+        MonthYear::new((today.month() - 2) as u8, today.year() - 1)
     };
-    start_date
+    end_date
 }

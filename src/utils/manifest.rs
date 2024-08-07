@@ -15,59 +15,36 @@ impl TimePeriod {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DatePeriod {
-    start: String,
-    end: String,
-}
-
-impl DatePeriod {
-    pub fn new(start: &str, end: &str) -> DatePeriod {
-        DatePeriod { start: start.to_string(), end: end.to_string() }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Period {
-    down_times: Vec<TimePeriod>,
-    assets: HashMap<String, DatePeriod>,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
-    periods: HashMap<String, Period>,
+    down_times: Vec<TimePeriod>,
+    assets: HashMap<String, TimePeriod>,
+    #[serde(skip_serializing)]
+    granularity: String,
 }
 
+
 impl Manifest {
-    pub fn new() -> Manifest {
-        Manifest { periods: Default::default() }
+    pub fn new(granularity: &str) -> Manifest {
+        Manifest { down_times: vec![], assets: HashMap::new(), granularity: granularity.to_string() }
     }
-    pub fn add_down_time(&mut self, period: &str, time_period: TimePeriod) {
-        self.check_period(period);
-        let current = self.periods.get_mut(period).unwrap();
-        for down in &current.down_times {
+    pub fn add_down_time(&mut self, time_period: TimePeriod) {
+        for down in &self.down_times {
             if down.start == time_period.start && down.end == time_period.end {
                 return;
             }
         }
-        current.down_times.push(time_period);
+        self.down_times.push(time_period);
     }
-    pub fn add_asset(&mut self, period: &str, asset: &str, date_period: DatePeriod) {
-        self.check_period(period);
-        let current = self.periods.get_mut(period).unwrap();
-        current.assets.insert(asset.to_string(), date_period);
+    pub fn add_asset(&mut self, asset: &str, time_period: TimePeriod) {
+        self.assets.insert(asset.to_string(), time_period);
     }
 
     pub fn save(&self) -> std::io::Result<()> {
         let json = serde_json::to_string_pretty(&self)?;
-        let mut file = File::create("./binance_data/manifest.json")?;
+        let mut file = File::create(format!("./binance_data/results/{}/manifest.json", self.granularity))?;
         file.write_all(json.as_bytes())?;
         Ok(())
-    }
-    fn check_period(&mut self, period: &str) {
-        if self.periods.contains_key(period) {
-            return;
-        }
-        self.periods.insert(period.to_string(), Period { down_times: vec![], assets: HashMap::new() });
     }
 }
