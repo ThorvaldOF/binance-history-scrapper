@@ -25,7 +25,6 @@ pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result
             start_time.get_month()
         } else { 1 };
         for month in min_month..=max_month {
-            process.log_bar(&format!("ex {}={}", month, year));
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone());
             extract_file(&asset_file, process.clear_cache)?;

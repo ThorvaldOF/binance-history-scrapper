@@ -19,7 +19,6 @@ pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Result<Option<
             max_month = end_time.get_month();
         }
         for month in (1..=max_month).rev() {
-            process.log_bar(&format!("dl {}={} {}", month, year, end_time.get_year()));
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone());
             if let Err(err) = download_file(&asset_file, agent.clone()) {
