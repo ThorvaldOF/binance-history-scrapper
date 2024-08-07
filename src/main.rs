@@ -18,6 +18,7 @@ use crate::utils::process_data::ProcessData;
 
 const BINANCE_BIRTH: i32 = 2017;
 
+//TODO: utiliser des channels
 struct FailedProcess {
     asset: String,
     error: ScrapperError,
