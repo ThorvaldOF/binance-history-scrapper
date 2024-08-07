@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct TimePeriod {
     start: u64,
     end: u64,
@@ -16,7 +16,7 @@ impl TimePeriod {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct Manifest {
     down_times: Vec<TimePeriod>,
     assets: HashMap<String, TimePeriod>,

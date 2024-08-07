@@ -78,7 +78,7 @@ fn get_end_date() -> MonthYear {
         };
         MonthYear::new(new_month, today.year() - 1)
     } else {
-        MonthYear::new((today.month() - 2) as u8, today.year() - 1)
+        MonthYear::new((today.month() - 2) as u8, today.year())
     };
     end_date
 }
