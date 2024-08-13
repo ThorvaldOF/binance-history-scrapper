@@ -18,6 +18,7 @@ use crate::utils::process_data::ProcessData;
 
 const BINANCE_BIRTH: i32 = 2017;
 
+//TODO: Modulariser un peu le bordel
 //TODO: utiliser des channels
 struct FailedProcess {
     asset: String,
@@ -80,7 +81,11 @@ fn handle_processes(settings: Settings) {
         println!("Fix the problems then restart the program");
     }
     drop(fails);
-    manifest.lock().unwrap().save().expect("Couldn't save manifest");
+    let manifest = manifest.lock().unwrap();
+    manifest.save().expect("Couldn't save manifest");
+    let down_times = manifest.get_down_times();
+    drop(manifest);
+    analyze_down_times(down_times);
 }
 
 fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>, failed_processes_res: Arc<Mutex<Vec<FailedProcess>>>) {
@@ -135,4 +140,29 @@ fn process(mut process: ProcessData, agent: Agent) -> Result<Option<(Vec<TimePer
     process.finish_progress_bar();
 
     result
+}
+
+fn analyze_down_times(down_times: Vec<TimePeriod>) {
+    if down_times.is_empty() {
+        return;
+    }
+    let mut max: u64 = 0;
+    let mut min: u64 = 0;
+    let mut total: u64 = 0;
+
+    for down_time in down_times.clone() {
+        if down_time.get_raw_diff() > max {
+            max = down_time.get_raw_diff();
+        } else if down_time.get_raw_diff() < min {
+            min = down_time.get_raw_diff();
+        }
+        total += down_time.get_raw_diff();
+    }
+    let average = total / down_times.len() as u64;
+    let median = down_times[down_times.len() / 2].get_raw_diff();
+    println!("Down times analysis:");
+    println!("Max: {} mins", max / 60_000);
+    println!("Min: {} mins", min / 60_000);
+    println!("Average: {} mins", average / 60_000);
+    println!("Median: {} mins", median / 60_000);
 }

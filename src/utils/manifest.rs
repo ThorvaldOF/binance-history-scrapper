@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct TimePeriod {
     start: u64,
     end: u64,
@@ -12,6 +12,9 @@ pub struct TimePeriod {
 impl TimePeriod {
     pub fn new(start: u64, end: u64) -> TimePeriod {
         TimePeriod { start, end }
+    }
+    pub fn get_raw_diff(&self) -> u64 {
+        self.end - self.start
     }
 }
 
@@ -46,5 +49,8 @@ impl Manifest {
         let mut file = File::create(format!("./binance_data/results/{}/manifest.json", self.granularity))?;
         file.write_all(json.as_bytes())?;
         Ok(())
+    }
+    pub fn get_down_times(&self) -> Vec<TimePeriod> {
+        self.down_times.clone()
     }
 }
