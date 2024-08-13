@@ -6,7 +6,7 @@ use crate::ScrapperError;
 pub fn check_zip_integrity(file_path: &str) -> Result<(), ScrapperError> {
     let checksum_path = format!("{}{}", file_path, ".CHECKSUM");
     if metadata(file_path).is_err() || metadata(&checksum_path).is_err() {
-        return Err(ScrapperError::IntegrityError);
+        return Err(ScrapperError::IntegrityError("TODOA:".to_string()));
     }
 
     let checksum_read = read_to_string(&checksum_path)?;
@@ -15,7 +15,7 @@ pub fn check_zip_integrity(file_path: &str) -> Result<(), ScrapperError> {
         if let Some(expected_checksum) = checksum_content.get(0).cloned() {
             expected_checksum.to_string()
         } else {
-            return Err(ScrapperError::IntegrityError);
+            return Err(ScrapperError::IntegrityError("TODOB:".to_string()));
         }
     };
 
@@ -24,7 +24,7 @@ pub fn check_zip_integrity(file_path: &str) -> Result<(), ScrapperError> {
     return if expected_checksum == actual_checksum {
         Ok(())
     } else {
-        Err(ScrapperError::IntegrityError)
+        Err(ScrapperError::IntegrityError("TODOC:".to_string()))
     };
 }
 

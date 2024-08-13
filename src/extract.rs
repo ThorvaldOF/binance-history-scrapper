@@ -95,10 +95,11 @@ pub fn post_treatment(asset_file: &AssetFile) -> Result<(Vec<TimePeriod>, TimePe
     let mut last_ts = 0;
     let mut down_periods: Vec<TimePeriod> = vec![];
 
+    println!("POST TREATMENT: {}", asset_file.get_file_name());
     for result in reader.records() {
         let record = result?;
-        let ts_str = record.get(0).ok_or(ScrapperError::ParseError)?;
-        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::ParseError)?;
+        let ts_str = record.get(0).ok_or(ScrapperError::ParseError("TODOA:".to_string()))?;
+        let ts: u64 = ts_str.parse().ok().ok_or(ScrapperError::ParseError("TODOB:".to_string()))?;
 
         if last_ts == 0 {
             last_ts = ts;
@@ -106,12 +107,13 @@ pub fn post_treatment(asset_file: &AssetFile) -> Result<(Vec<TimePeriod>, TimePe
         if start_ts == 0 {
             start_ts = ts;
         }
+        println!("{} - {}", ts, last_ts);
         if ts - last_ts > asset_file.get_ts_factor() {
             let down_period = TimePeriod::new(last_ts, ts);
             down_periods.push(down_period);
         }
         if ts < last_ts {
-            return Err(ScrapperError::IntegrityError);
+            return Err(ScrapperError::IntegrityError("TODOC:".to_string()));
         }
         last_ts = ts;
     }

@@ -8,7 +8,6 @@ use crate::utils::errors::ScrapperError;
 use crate::utils::month_year::MonthYear;
 use crate::utils::process_data::ProcessData;
 
-
 pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Result<Option<MonthYear>, ScrapperError> {
     let end_time = process.get_end();
     let mut start_time = end_time.clone();
