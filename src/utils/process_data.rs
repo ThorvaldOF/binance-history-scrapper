@@ -33,7 +33,7 @@ impl ProcessData {
     }
 
     pub fn log_bar(&mut self, msg: &str) {
-        self.multi_progress.println(msg).expect("TODO: panic message");
+        self.multi_progress.println(msg).expect("Couldn't print to progress bar");
     }
     pub fn finish_progress_bar(&mut self) {
         if let Some(pb) = self.progress_bar.as_mut() {
