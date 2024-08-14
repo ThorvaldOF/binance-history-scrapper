@@ -25,7 +25,6 @@ pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Result<Option<
                         break 'downloads;
                     }
                     _ => {
-                        process.finish_progress_bar();
                         return Err(err);
                     }
                 };

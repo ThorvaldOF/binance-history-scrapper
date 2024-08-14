@@ -8,33 +8,32 @@ pub struct ProcessData {
     granularity: String,
     asset: String,
     end: MonthYear,
-    multi_progress: MultiProgress,
     progress_bar: Option<ProgressBar>,
 }
 
 impl ProcessData {
-    pub fn new(granularity: &str, asset: &str, multi_progress: MultiProgress) -> ProcessData {
+    pub fn new(granularity: &str, asset: &str) -> ProcessData {
         let end = get_end_date();
-        ProcessData { granularity: granularity.to_string(), asset: asset.to_string(), multi_progress, end, progress_bar: None }
+        ProcessData { granularity: granularity.to_string(), asset: asset.to_string(), end, progress_bar: None }
     }
 
-    pub fn init_progress_bar(&mut self) {
+    pub fn init_progress_bar(&mut self, multi_progress: &MultiProgress) {
         if self.progress_bar.is_some() {
             return;
         }
         let full_years = self.end.get_year() - BINANCE_BIRTH;
         let bar_size = full_years * 12;
 
-        let pb = self.multi_progress.add(ProgressBar::new(bar_size as u64));
+        let pb = multi_progress.add(ProgressBar::new(bar_size as u64));
         pb.set_style(Self::get_progress_bar_style("white/grey"));
         pb.set_prefix(format!("[{}]", self.asset.clone()));
         self.progress_bar = Some(pb);
     }
 
 
-    pub fn finish_progress_bar(&mut self) {
+    pub fn finish_progress_bar(&mut self, multi_progress: &MultiProgress) {
         if let Some(pb) = self.progress_bar.as_mut() {
-            self.multi_progress.remove(pb);
+            multi_progress.remove(pb);
         }
     }
     pub fn increment_progress_bar(&mut self) {

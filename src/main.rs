@@ -37,7 +37,7 @@ fn handle_processes(settings: Settings) {
 
     let mut processes_vec: Vec<ProcessData> = vec![];
     for asset in settings.assets {
-        let process_data = ProcessData::new(&settings.granularity, &asset, multi_progress.clone());
+        let process_data = ProcessData::new(&settings.granularity, &asset);
         processes_vec.push(process_data);
     }
     let mut processes_size = processes_vec.len();
@@ -62,7 +62,8 @@ fn handle_processes(settings: Settings) {
         let manifest_clone = Arc::clone(&manifest);
         let master_bar_clone = Arc::clone(&master_bar);
         let failed_processes_clone = Arc::clone(&failed_processes);
-        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, master_bar_clone, failed_processes_clone));
+        let multi_progress = multi_progress.clone();
+        let handle = thread::spawn(move || process_worker(processes_clone, manifest_clone, master_bar_clone, failed_processes_clone, multi_progress));
         handles.push(handle);
     }
 
@@ -83,7 +84,7 @@ fn handle_processes(settings: Settings) {
     drop(manifest);
 }
 
-fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>, failed_processes_res: Arc<Mutex<Vec<FailedProcess>>>) {
+fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<Manifest>>, master_bar: Arc<Mutex<ProgressBar>>, failed_processes_res: Arc<Mutex<Vec<FailedProcess>>>, multi_progress: MultiProgress) {
     let agent: Agent = AgentBuilder::new()
         .build();
     let mut failed_processes: Vec<FailedProcess> = vec![];
@@ -93,8 +94,10 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
             break;
         }
 
-        let process_data = processes.remove(0);
+        let mut process_data = processes.remove(0);
         drop(processes);
+
+        process_data.init_progress_bar(&multi_progress);
         match process(process_data.clone(), agent.clone()) {
             Err(err) => {
                 failed_processes.push(FailedProcess { asset: process_data.get_asset(), error: err });
@@ -114,14 +117,13 @@ fn process_worker(processes: Arc<Mutex<Vec<ProcessData>>>, manifest: Arc<Mutex<M
                 }
             }
         }
+        process_data.finish_progress_bar(&multi_progress);
         master_bar.lock().unwrap().inc(1);
     }
     failed_processes_res.lock().unwrap().extend(failed_processes);
 }
 
 fn process(mut process: ProcessData, agent: Agent) -> Result<Option<(Vec<TimePeriod>, TimePeriod)>, ScrapperError> {
-    process.init_progress_bar();
-
     let result = (|| {
         if let Some(start_time) = download_asset(&mut process, agent)? {
             let extraction_results = extract_asset(&mut process, start_time)?;
@@ -129,7 +131,6 @@ fn process(mut process: ProcessData, agent: Agent) -> Result<Option<(Vec<TimePer
         }
         Err(ScrapperError::NoOnlineData)
     })();
-    process.finish_progress_bar();
 
     result
 }
