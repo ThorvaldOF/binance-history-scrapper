@@ -22,7 +22,6 @@ pub struct Settings {
     pub assets: Vec<String>,
     pub clear_cache: bool,
 }
-//TODO: confirmation of user settings
 
 pub fn process_input() -> Settings {
     let args: Vec<String> = env::args().collect();
@@ -35,7 +34,12 @@ pub fn process_input() -> Settings {
     let clear_cache_flag = args.iter().position(|arg| arg == "clear_cache");
     let clear_cache = clear_cache_flag.is_some();
 
-    println!("Processing on granularity: {}, assets: {} and clear_cache: {}", granularity, asset_input, clear_cache);
+    println!("Processing on granularity: {}, assets: {} and clear_cache: {}, should we continue ? (Y/n)", granularity, asset_input, clear_cache);
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    if input.trim() != "Y" && input.trim() != "y" {
+        panic!("Exiting");
+    }
 
     Settings {
         granularity,
