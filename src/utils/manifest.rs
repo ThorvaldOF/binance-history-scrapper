@@ -13,6 +13,13 @@ impl TimePeriod {
     pub fn new(start: u64, end: u64) -> TimePeriod {
         TimePeriod { start, end }
     }
+
+    fn is_included(&self, other: &TimePeriod) -> bool {
+        if self.start >= other.start && self.end <= other.end {
+            return true;
+        }
+        false
+    }
 }
 
 
@@ -41,10 +48,36 @@ impl Manifest {
         self.assets.insert(asset.to_string(), time_period);
     }
 
-    pub fn save(&self) -> std::io::Result<()> {
+    pub fn save(&mut self) -> std::io::Result<()> {
+        self.concat_down_times();
         let json = serde_json::to_string_pretty(&self)?;
         let mut file = File::create(format!("./binance_data/results/{}/manifest.json", self.granularity))?;
         file.write_all(json.as_bytes())?;
         Ok(())
+    }
+    fn concat_down_times(&mut self) {
+        let mut is_changed = true;
+        let mut new_down_times: Vec<TimePeriod> = vec![];
+        while is_changed {
+            is_changed = false;
+            let res = self.iter_concat_down_times();
+            if new_down_times.len() != res.len() {
+                is_changed = true;
+                new_down_times = res;
+            }
+        }
+        self.down_times = new_down_times;
+    }
+    fn iter_concat_down_times(&self) -> Vec<TimePeriod> {
+        let mut last: TimePeriod = TimePeriod::new(0, 0);
+        let mut down_times: Vec<TimePeriod> = vec![];
+        for current in &self.down_times {
+            if current.is_included(&last) {
+                continue;
+            }
+            down_times.push(current.clone());
+            last = current.clone();
+        }
+        down_times
     }
 }

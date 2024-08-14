@@ -79,7 +79,7 @@ fn handle_processes(settings: Settings) {
         println!("Fix the problems then restart the program");
     }
     drop(fails);
-    let manifest = manifest.lock().unwrap();
+    let mut manifest = manifest.lock().unwrap();
     manifest.save().expect("Couldn't save manifest");
     drop(manifest);
 }
