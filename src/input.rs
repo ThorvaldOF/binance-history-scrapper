@@ -102,6 +102,10 @@ fn get_all_assets() -> Option<Vec<String>> {
 
     let mut asset_pairs: Vec<String> = Vec::new();
     for symbol in symbols_array {
+        let status = symbol.get("status")?.as_str()?.to_string();
+        if status != "TRADING" {
+            continue;
+        }
         let quote_asset = symbol.get("quoteAsset")?.as_str()?.to_string();
         if quote_asset == STABLE_COIN {
             let base_asset = symbol.get("baseAsset")?.as_str()?.to_string();

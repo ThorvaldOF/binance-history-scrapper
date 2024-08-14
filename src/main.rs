@@ -20,6 +20,7 @@ const BINANCE_BIRTH: i32 = 2017;
 
 //TODO: Modulariser un peu le bordel
 //TODO: utiliser des channels
+//TODO: Pourquoi ça pète avant la fin ?
 struct FailedProcess {
     asset: String,
     error: ScrapperError,
@@ -45,12 +46,11 @@ fn handle_processes(settings: Settings) {
         let process_data = ProcessData::new(&settings.granularity, &asset, settings.clear_cache, multi_progress.clone());
         processes_vec.push(process_data);
     }
-    let processes_size = processes_vec.len();
+    let mut processes_size = processes_vec.len();
     let processes = Arc::new(Mutex::new(processes_vec));
     let manifest = Arc::new(Mutex::new(Manifest::new(&settings.granularity.clone())));
     let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_size as u64))));
     let failed_processes = Arc::new(Mutex::new(vec![]));
-
 
     master_bar.lock().unwrap().set_style(ProgressStyle::with_template(
         "[TOTAL] {bar:75.white/white} {pos:>4}/{len:7}",
@@ -58,9 +58,12 @@ fn handle_processes(settings: Settings) {
         .unwrap()
         .progress_chars("█░"));
 
+    if processes_size < 4 {
+        processes_size = 1;
+    }
 
     let mut handles = vec![];
-    for _ in 0..4 {
+    for _ in 0..processes_size {
         let processes_clone = Arc::clone(&processes);
         let manifest_clone = Arc::clone(&manifest);
         let master_bar_clone = Arc::clone(&master_bar);
