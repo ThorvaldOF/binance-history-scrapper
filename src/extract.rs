@@ -69,7 +69,7 @@ fn filter_record(record: StringRecord) -> StringRecord {
 
     //Format based on https://github.com/binance/binance-public-data/
     let mut processed_record: StringRecord = StringRecord::new();
-    for i in 0..=6 {
+    for i in 0..=5 {
         processed_record.push_field(collected_record[i]);
     }
     processed_record
