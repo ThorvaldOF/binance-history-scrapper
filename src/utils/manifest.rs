@@ -13,9 +13,6 @@ impl TimePeriod {
     pub fn new(start: u64, end: u64) -> TimePeriod {
         TimePeriod { start, end }
     }
-    pub fn get_raw_diff(&self) -> u64 {
-        self.end - self.start
-    }
 }
 
 
@@ -49,8 +46,5 @@ impl Manifest {
         let mut file = File::create(format!("./binance_data/results/{}/manifest.json", self.granularity))?;
         file.write_all(json.as_bytes())?;
         Ok(())
-    }
-    pub fn get_down_times(&self) -> Vec<TimePeriod> {
-        self.down_times.clone()
     }
 }

@@ -5,9 +5,9 @@ use crate::utils::month_year::MonthYear;
 
 #[derive(Clone)]
 pub struct ProcessData {
-    pub granularity: String,
-    pub asset: String,
-    pub clear_cache: bool,
+    granularity: String,
+    asset: String,
+    clear_cache: bool,
     end: MonthYear,
     multi_progress: MultiProgress,
     progress_bar: Option<ProgressBar>,
@@ -32,9 +32,7 @@ impl ProcessData {
         self.progress_bar = Some(pb);
     }
 
-    pub fn log_bar(&mut self, msg: &str) {
-        self.multi_progress.println(msg).expect("Couldn't print to progress bar");
-    }
+
     pub fn finish_progress_bar(&mut self) {
         if let Some(pb) = self.progress_bar.as_mut() {
             self.multi_progress.remove(pb);

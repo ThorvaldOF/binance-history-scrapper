@@ -11,7 +11,7 @@ use crate::utils::process_data::ProcessData;
 pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result<(Vec<TimePeriod>, TimePeriod), ScrapperError> {
     let end_time = process.get_end();
 
-    let global_asset_file = AssetFile::new(&process.asset, &process.granularity, start_time.clone());
+    let global_asset_file = AssetFile::new(&process.get_asset(), &process.get_granularity(), start_time.clone());
 
     init_result_file(&global_asset_file)?;
 
@@ -26,8 +26,8 @@ pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result
         } else { 1 };
         for month in min_month..=max_month {
             let month_year = MonthYear::new(month, year);
-            let asset_file = AssetFile::new(&process.asset, &process.granularity, month_year.clone());
-            extract_file(&asset_file, process.clear_cache)?;
+            let asset_file = AssetFile::new(&process.get_asset(), &process.get_granularity(), month_year.clone());
+            extract_file(&asset_file, process.get_clear_cache())?;
         }
     }
     let asset_data = post_treatment(&global_asset_file)?;
@@ -95,6 +95,7 @@ pub fn post_treatment(asset_file: &AssetFile) -> Result<(Vec<TimePeriod>, TimePe
     let mut last_ts = 0;
     let mut down_periods: Vec<TimePeriod> = vec![];
 
+    let mut i = 0;
     for result in reader.records() {
         let record = result?;
         let ts_str = record.get(0).ok_or(ScrapperError::ParseError("Couldn't get csv record:".to_string()))?;
@@ -114,6 +115,7 @@ pub fn post_treatment(asset_file: &AssetFile) -> Result<(Vec<TimePeriod>, TimePe
             down_periods.push(down_period);
         }
         last_ts = ts;
+        i = i + 1;
     }
     Ok((down_periods, TimePeriod::new(start_ts, last_ts)))
 }

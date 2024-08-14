@@ -23,7 +23,4 @@ impl MonthYear {
         };
         format!("{}{}", prefix, self.month)
     }
-    pub fn to_string(&self) -> String {
-        format!("{}-{}", self.get_month_string(), self.year)
-    }
 }
