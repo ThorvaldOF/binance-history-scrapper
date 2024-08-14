@@ -20,7 +20,6 @@ pub const GRANULARITIES: [(&str, u64); 13] = [
 pub struct Settings {
     pub granularity: String,
     pub assets: Vec<String>,
-    pub clear_cache: bool,
 }
 
 pub fn process_input() -> Settings {
@@ -31,10 +30,8 @@ pub fn process_input() -> Settings {
     let asset_input = get_flag(&args, "asset", "everything");
     let assets = check_asset(&asset_input);
 
-    let clear_cache_flag = args.iter().position(|arg| arg == "clear_cache");
-    let clear_cache = clear_cache_flag.is_some();
 
-    println!("Processing on granularity: {}, assets: {} and clear_cache: {}, should we continue ? (Y/n)", granularity, asset_input, clear_cache);
+    println!("Processing on granularity: {} and assets: {}, should we continue ? (Y/n)", granularity, asset_input);
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
     if input.trim() != "Y" && input.trim() != "y" {
@@ -44,7 +41,6 @@ pub fn process_input() -> Settings {
     Settings {
         granularity,
         assets,
-        clear_cache,
     }
 }
 

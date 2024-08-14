@@ -27,14 +27,14 @@ pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result
         for month in min_month..=max_month {
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.get_asset(), &process.get_granularity(), month_year.clone());
-            extract_file(&asset_file, process.get_clear_cache())?;
+            extract_file(&asset_file)?;
         }
     }
     let asset_data = post_treatment(&global_asset_file)?;
     Ok(asset_data)
 }
 
-pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), ScrapperError> {
+pub fn extract_file(asset_file: &AssetFile) -> Result<(), ScrapperError> {
     let output_file_path = asset_file.get_result_file_path();
 
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
@@ -59,9 +59,6 @@ pub fn extract_file(asset_file: &AssetFile, clear_cache: bool) -> Result<(), Scr
     for result in csv_reader.records() {
         let record = result?;
         csv_writer.write_record(filter_record(record).iter())?;
-    }
-    if clear_cache {
-        remove_file(source_path)?;
     }
     Ok(())
 }

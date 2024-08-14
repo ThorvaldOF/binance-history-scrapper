@@ -4,11 +4,10 @@ mod extract;
 mod utils;
 mod tests;
 
-use std::{fs, thread};
+use std::{thread};
 use std::sync::{Arc, Mutex};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use ureq::{Agent, AgentBuilder};
-use crate::utils::asset_file::AssetFile;
 use crate::download::{download_asset};
 use crate::extract::{extract_asset};
 use crate::input::Settings;
@@ -29,12 +28,7 @@ struct FailedProcess {
 //TODO: check all the project and rename stuff
 fn main() {
     let settings = input::process_input();
-    let clear_cache = settings.clear_cache;
     handle_processes(settings);
-
-    if clear_cache {
-        fs::remove_dir_all(AssetFile::get_cache_directory()).expect("Couldn't clear downloads directory");
-    }
     println!("Scrapping completed, you can find your output in 'results' directory");
 }
 
@@ -43,7 +37,7 @@ fn handle_processes(settings: Settings) {
 
     let mut processes_vec: Vec<ProcessData> = vec![];
     for asset in settings.assets {
-        let process_data = ProcessData::new(&settings.granularity, &asset, settings.clear_cache, multi_progress.clone());
+        let process_data = ProcessData::new(&settings.granularity, &asset, multi_progress.clone());
         processes_vec.push(process_data);
     }
     let mut processes_size = processes_vec.len();
@@ -133,7 +127,7 @@ fn process(mut process: ProcessData, agent: Agent) -> Result<Option<(Vec<TimePer
             let extraction_results = extract_asset(&mut process, start_time)?;
             return Ok(Some(extraction_results));
         }
-        Ok(None)
+        Err(ScrapperError::NoOnlineData)
     })();
     process.finish_progress_bar();
 

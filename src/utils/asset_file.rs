@@ -52,9 +52,6 @@ impl AssetFile {
     pub fn get_download_url(&self, extension: &str) -> String {
         format!("https://data.binance.vision/data/spot/monthly/klines/{}{}/{}/{}", self.asset, STABLE_COIN, self.granularity, self.get_full_file_name(extension))
     }
-    pub fn get_cache_directory() -> String {
-        format!("{}{}", LOCAL_PATH, DOWNLOADS_PATH)
-    }
 
     fn get_local_directory(&self, directory: &str) -> String {
         format!("{}{}{}/{}{}/", LOCAL_PATH, directory, self.granularity, self.asset, STABLE_COIN)
