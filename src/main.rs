@@ -19,11 +19,7 @@ use tokio::sync::Semaphore;
 
 const BINANCE_BIRTH: i32 = 2017;
 
-//TODO: Modulariser un peu le bordel
-//TODO: Pourquoi ça pète avant la fin ? Parce que des tâches ont échouées
-
-//TODO: check all the project and rename stuff
-#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+#[tokio::main]
 async fn main() {
     let settings = input::process_input();
     handle_processes(settings).await;
