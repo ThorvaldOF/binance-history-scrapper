@@ -85,6 +85,7 @@ fn post_process(rx: Receiver<(String, Result<(Vec<TimePeriod>, TimePeriod), Scra
     while let Ok(result) = rx.recv() {
         match result.1 {
             Err(err) => {
+                //TODO: automatic retry on fail, if it's not a "No data error"
                 println!("Asset {} failed with error: {}", result.0, err);
                 continue;
             }
