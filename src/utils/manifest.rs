@@ -1,5 +1,6 @@
 use serde::{Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 
@@ -51,7 +52,9 @@ impl Manifest {
     pub fn save(&mut self) -> std::io::Result<()> {
         self.concat_down_times();
         let json = serde_json::to_string_pretty(&self)?;
-        let mut file = File::create(format!("./binance_data/results/{}/manifest.json", self.granularity))?;
+        let dir_path = format!("./binance_data/results/{}", self.granularity);
+        fs::create_dir_all(&dir_path)?;
+        let mut file = File::create(format!("{}/manifest.json", dir_path))?;
         file.write_all(json.as_bytes())?;
         Ok(())
     }
