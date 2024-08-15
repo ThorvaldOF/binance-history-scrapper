@@ -1,7 +1,7 @@
 use crate::input::GRANULARITIES;
 use crate::utils::month_year::MonthYear;
 
-pub const STABLE_COIN: &str = "USDC";
+pub const STABLE_COIN: &str = "USDT";
 const LOCAL_PATH: &str = "./binance_data/";
 const DOWNLOADS_PATH: &str = "downloads/";
 const RESULTS_PATH: &str = "results/";
