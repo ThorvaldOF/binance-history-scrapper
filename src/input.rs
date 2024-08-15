@@ -100,7 +100,7 @@ fn get_all_assets() -> Option<Vec<String>> {
 
     let symbols_array = parsed_data.get("symbols")?.as_array()?;
 
-    let usdc_compatible_assets = extract_usdc_compatible(symbols_array);
+    let usdc_compatible_assets = extract_usdc_compatible(symbols_array).unwrap();
     let mut asset_pairs: Vec<String> = Vec::new();
     for symbol in symbols_array {
         let status = symbol.get("status")?.as_str()?.to_string();
@@ -120,7 +120,7 @@ fn get_all_assets() -> Option<Vec<String>> {
     Some(asset_pairs)
 }
 
-fn extract_usdc_compatible(json: &Vec<Value>) -> Vec<String> {
+fn extract_usdc_compatible(json: &Vec<Value>) -> Option<Vec<String>> {
     let mut assets: Vec<String> = Vec::new();
     for symbol in json {
         let quote_asset = symbol.get("quoteAsset")?.as_str()?.to_string();
@@ -129,5 +129,5 @@ fn extract_usdc_compatible(json: &Vec<Value>) -> Vec<String> {
             assets.push(base_asset);
         }
     }
-    assets
+    Some(assets)
 }
