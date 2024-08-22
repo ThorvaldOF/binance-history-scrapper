@@ -2,7 +2,6 @@ mod input;
 mod download;
 mod extract;
 mod utils;
-mod tests;
 
 use std::sync::{Arc, mpsc, Mutex};
 use std::sync::mpsc::{Receiver, Sender};
