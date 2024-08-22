@@ -1,4 +1,6 @@
 use std::{fmt, io};
+use std::num::{ParseFloatError, ParseIntError};
+use bincode::ErrorKind;
 
 pub enum ScrapperError {
     IOError(io::Error),
@@ -41,3 +43,22 @@ impl From<csv::Error> for ScrapperError {
         ScrapperError::CsvError(error)
     }
 }
+
+impl From<ParseIntError> for ScrapperError {
+    fn from(error: ParseIntError) -> Self {
+        ScrapperError::ParseError(error.to_string())
+    }
+}
+
+impl From<ParseFloatError> for ScrapperError {
+    fn from(error: ParseFloatError) -> Self {
+        ScrapperError::ParseError(error.to_string())
+    }
+}
+
+impl From<bincode::Error> for ScrapperError {
+    fn from(error: bincode::Error) -> Self {
+        ScrapperError::ParseError(error.to_string())
+    }
+}
+
