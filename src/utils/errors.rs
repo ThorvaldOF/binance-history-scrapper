@@ -1,6 +1,5 @@
 use std::{fmt, io};
 use std::num::{ParseFloatError, ParseIntError};
-use bincode::ErrorKind;
 
 pub enum ScrapperError {
     IOError(io::Error),

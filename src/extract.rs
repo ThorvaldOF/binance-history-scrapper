@@ -1,8 +1,6 @@
-use std::fs::{File, create_dir_all, remove_file, metadata, OpenOptions};
+use std::fs::{File, create_dir_all, remove_file, metadata};
 use std::io::{Read, Write};
-use std::slice::RSplit;
-use bincode::serialize_into;
-use csv::{ReaderBuilder, StringRecord, WriterBuilder};
+use csv::{ReaderBuilder, StringRecord};
 use serde::{Deserialize, Serialize};
 use zip::ZipArchive;
 use crate::utils::asset_file::AssetFile;
@@ -12,7 +10,7 @@ use crate::utils::month_year::MonthYear;
 use crate::utils::process_data::ProcessData;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ExtractedData {
+pub struct ExtractedData {
     open_time: u64,
     open: f64,
     high: f64,
@@ -62,8 +60,6 @@ pub fn extract_asset(process: &mut ProcessData, start_time: MonthYear) -> Result
 }
 
 pub fn extract_file(asset_file: &AssetFile) -> Result<Vec<ExtractedData>, ScrapperError> {
-    let output_file_path = asset_file.get_result_file_path();
-
     let source_path = asset_file.get_download_directory() + &asset_file.get_full_file_name(".zip");
     let source_file = File::open(source_path.clone())?;
 
