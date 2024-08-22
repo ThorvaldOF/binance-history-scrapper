@@ -115,7 +115,6 @@ pub fn post_treatment(asset_file: &AssetFile, extracted_data: &mut Vec<Extracted
     for entry in extracted_data {
         let ts = entry.open_time;
 
-        //TODO: checker si les timestamps sont bien un multiple du facteur de granularité, sinon on considère que c'est des données corrompues
         if last_ts == 0 {
             last_ts = ts;
         }
