@@ -14,13 +14,6 @@ impl TimePeriod {
     pub fn new(start: u64, end: u64) -> TimePeriod {
         TimePeriod { start, end }
     }
-
-    fn is_included(&self, other: &TimePeriod) -> bool {
-        if self.start >= other.start && self.end <= other.end {
-            return true;
-        }
-        false
-    }
 }
 
 
