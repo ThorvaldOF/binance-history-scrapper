@@ -15,8 +15,16 @@ use crate::utils::manifest::{Manifest, TimePeriod};
 use crate::utils::process_data::ProcessData;
 use tokio::task;
 use tokio::sync::Semaphore;
+use crate::utils::month_year::MonthYear;
+use crate::utils::start_dates::StartDates;
 
 const BINANCE_BIRTH: i32 = 2017;
+
+struct ProcessResult {
+    down_times: Vec<TimePeriod>,
+    time_period: TimePeriod,
+    start_date: Option<MonthYear>,
+}
 
 #[tokio::main]
 async fn main() {
@@ -29,9 +37,12 @@ async fn handle_processes(settings: Settings) {
     let multi_progress = MultiProgress::new();
     let semaphore = Arc::new(Semaphore::new(4));
 
+    let start_dates = StartDates::load();
+
     let mut processes_vec: Vec<ProcessData> = vec![];
     for asset in &settings.assets {
-        let process_data = ProcessData::new(&settings.granularity, &asset);
+        let start = start_dates.get_start_date(&asset);
+        let process_data = ProcessData::new(&settings.granularity, &asset, start);
         processes_vec.push(process_data);
     }
     let master_bar = Arc::new(Mutex::new(multi_progress.add(ProgressBar::new(processes_vec.len() as u64))));
@@ -44,7 +55,7 @@ async fn handle_processes(settings: Settings) {
 
 
     let agent = Agent::new();
-    let (tx, rx) = mpsc::channel::<(String, Result<(Vec<TimePeriod>, TimePeriod), ScrapperError>)>();
+    let (tx, rx) = mpsc::channel::<(String, Result<ProcessResult, ScrapperError>)>();
 
     let mut handles = vec![];
 
@@ -70,7 +81,7 @@ async fn handle_processes(settings: Settings) {
     post_process(rx, settings);
 }
 
-async fn new_process(mut process_data: ProcessData, agent: Agent, master_bar: Arc<Mutex<ProgressBar>>, multi_progress: MultiProgress, tx: Sender<(String, Result<(Vec<TimePeriod>, TimePeriod), ScrapperError>)>) {
+async fn new_process(mut process_data: ProcessData, agent: Agent, master_bar: Arc<Mutex<ProgressBar>>, multi_progress: MultiProgress, tx: Sender<(String, Result<ProcessResult, ScrapperError>)>) {
     process_data.init_progress_bar(&multi_progress);
     let res = process(&mut process_data, agent);
     process_data.finish_progress_bar(&multi_progress);
@@ -78,8 +89,9 @@ async fn new_process(mut process_data: ProcessData, agent: Agent, master_bar: Ar
     tx.send((process_data.get_asset(), res)).unwrap();
 }
 
-fn post_process(rx: Receiver<(String, Result<(Vec<TimePeriod>, TimePeriod), ScrapperError>)>, settings: Settings) {
+fn post_process(rx: Receiver<(String, Result<ProcessResult, ScrapperError>)>, settings: Settings) {
     let mut manifest = Manifest::new(&settings.granularity.clone());
+    let mut start_dates = StartDates::load();
 
     while let Ok(result) = rx.recv() {
         match result.1 {
@@ -89,17 +101,22 @@ fn post_process(rx: Receiver<(String, Result<(Vec<TimePeriod>, TimePeriod), Scra
                 continue;
             }
             Ok(res) => {
-                manifest.add_asset(&result.0, res.1);
-                for down_time in res.0 {
+                manifest.add_asset(&result.0, res.time_period);
+                if let Some(start_date) = res.start_date {
+                    start_dates.set_start_date(&result.0, start_date);
+                }
+                for down_time in res.down_times {
                     manifest.add_down_time(down_time);
                 }
             }
         }
     }
+    start_dates.save();
     manifest.save().unwrap();
 }
 
-fn process(process: &mut ProcessData, agent: Agent) -> Result<(Vec<TimePeriod>, TimePeriod), ScrapperError> {
+//(Vec<TimePeriod>, TimePeriod)
+fn process(process: &mut ProcessData, agent: Agent) -> Result<ProcessResult, ScrapperError> {
     let result = (|| {
         if let Some(start_time) = download_asset(process, agent)? {
             let extraction_results = extract_asset(process, start_time)?;
@@ -107,6 +124,6 @@ fn process(process: &mut ProcessData, agent: Agent) -> Result<(Vec<TimePeriod>, 
         }
         Err(ScrapperError::NoOnlineData)
     })();
-
-    result
+    let extracted_result = result?;
+    Ok(ProcessResult { down_times: extracted_result.0, time_period: extracted_result.1, start_date: process.get_start() })
 }

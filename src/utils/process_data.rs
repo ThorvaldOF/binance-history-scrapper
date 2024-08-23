@@ -7,14 +7,15 @@ use crate::utils::month_year::MonthYear;
 pub struct ProcessData {
     granularity: String,
     asset: String,
+    start: Option<MonthYear>,
     end: MonthYear,
     progress_bar: Option<ProgressBar>,
 }
 
 impl ProcessData {
-    pub fn new(granularity: &str, asset: &str) -> ProcessData {
+    pub fn new(granularity: &str, asset: &str, start: Option<MonthYear>) -> ProcessData {
         let end = get_end_date();
-        ProcessData { granularity: granularity.to_string(), asset: asset.to_string(), end, progress_bar: None }
+        ProcessData { granularity: granularity.to_string(), start, asset: asset.to_string(), end, progress_bar: None }
     }
 
     pub fn init_progress_bar(&mut self, multi_progress: &MultiProgress) {
@@ -40,6 +41,12 @@ impl ProcessData {
         if let Some(pb) = self.progress_bar.as_mut() {
             pb.inc(1);
         }
+    }
+    pub fn get_start(&self) -> Option<MonthYear> {
+        self.start.clone()
+    }
+    pub fn set_start(&mut self, start: MonthYear) {
+        self.start = Some(start);
     }
 
     pub fn get_end(&self) -> MonthYear {

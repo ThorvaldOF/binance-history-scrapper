@@ -11,17 +11,27 @@ use crate::utils::process_data::ProcessData;
 pub fn download_asset(process: &mut ProcessData, agent: Agent) -> Result<Option<MonthYear>, ScrapperError> {
     let end_time = process.get_end();
     let mut start_time = end_time.clone();
+    let mut last_iteration = false;
     'downloads: for year in (BINANCE_BIRTH..=end_time.get_year()).rev() {
         let mut max_month = 12;
         if year == end_time.get_year() {
             max_month = end_time.get_month();
         }
         for month in (1..=max_month).rev() {
+            if last_iteration {
+                break 'downloads;
+            }
+            if let Some(start) = process.get_start() {
+                if start.get_year() == year && start.get_month() == month {
+                    last_iteration = true;
+                }
+            }
             let month_year = MonthYear::new(month, year);
             let asset_file = AssetFile::new(&process.get_asset(), &process.get_granularity(), month_year.clone());
             if let Err(err) = download_file(&asset_file, agent.clone()) {
                 match err {
                     ScrapperError::NoOnlineData => {
+                        process.set_start(start_time.clone());
                         break 'downloads;
                     }
                     _ => {

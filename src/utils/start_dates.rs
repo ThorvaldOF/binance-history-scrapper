@@ -26,8 +26,11 @@ impl StartDates {
         file.write_all(content.as_bytes()).unwrap();
     }
 
-    pub fn get_start_date(&self, asset: &str) -> Option<&MonthYear> {
-        self.start_dates.get(asset)
+    pub fn get_start_date(&self, asset: &str) -> Option<MonthYear> {
+        if let Some(date) = self.start_dates.get(asset) {
+            return Some(date.clone());
+        }
+        None
     }
     pub fn set_start_date(&mut self, asset: &str, month_year: MonthYear) {
         self.start_dates.insert(asset.to_string(), month_year);
