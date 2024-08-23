@@ -1,0 +1,334 @@
+{
+  "WIF": {
+    "month": 3,
+    "year": 2024
+  },
+  "WIN": {
+    "month": 8,
+    "year": 2019
+  },
+  "ANKR": {
+    "month": 7,
+    "year": 2019
+  },
+  "NEO": {
+    "month": 11,
+    "year": 2017
+  },
+  "REZ": {
+    "month": 4,
+    "year": 2024
+  },
+  "ICP": {
+    "month": 5,
+    "year": 2021
+  },
+  "STX": {
+    "month": 10,
+    "year": 2019
+  },
+  "BLUR": {
+    "month": 11,
+    "year": 2023
+  },
+  "ENA": {
+    "month": 4,
+    "year": 2024
+  },
+  "OMNI": {
+    "month": 4,
+    "year": 2024
+  },
+  "PIXEL": {
+    "month": 2,
+    "year": 2024
+  },
+  "DOGE": {
+    "month": 7,
+    "year": 2019
+  },
+  "INJ": {
+    "month": 10,
+    "year": 2020
+  },
+  "ONT": {
+    "month": 6,
+    "year": 2018
+  },
+  "UNI": {
+    "month": 9,
+    "year": 2020
+  },
+  "PEOPLE": {
+    "month": 12,
+    "year": 2021
+  },
+  "TIA": {
+    "month": 10,
+    "year": 2023
+  },
+  "BAT": {
+    "month": 3,
+    "year": 2019
+  },
+  "SUI": {
+    "month": 5,
+    "year": 2023
+  },
+  "EUR": {
+    "month": 1,
+    "year": 2020
+  },
+  "MANTA": {
+    "month": 1,
+    "year": 2024
+  },
+  "ETC": {
+    "month": 6,
+    "year": 2018
+  },
+  "TRX": {
+    "month": 6,
+    "year": 2018
+  },
+  "SEI": {
+    "month": 8,
+    "year": 2023
+  },
+  "EOS": {
+    "month": 5,
+    "year": 2018
+  },
+  "ETHFI": {
+    "month": 3,
+    "year": 2024
+  },
+  "ARKM": {
+    "month": 7,
+    "year": 2023
+  },
+  "CRV": {
+    "month": 8,
+    "year": 2020
+  },
+  "PEPE": {
+    "month": 5,
+    "year": 2023
+  },
+  "FRONT": {
+    "month": 10,
+    "year": 2021
+  },
+  "APT": {
+    "month": 10,
+    "year": 2022
+  },
+  "XRP": {
+    "month": 5,
+    "year": 2018
+  },
+  "ZEC": {
+    "month": 3,
+    "year": 2019
+  },
+  "NEAR": {
+    "month": 10,
+    "year": 2020
+  },
+  "AVAX": {
+    "month": 9,
+    "year": 2020
+  },
+  "SOL": {
+    "month": 8,
+    "year": 2020
+  },
+  "FLOKI": {
+    "month": 5,
+    "year": 2023
+  },
+  "BOME": {
+    "month": 3,
+    "year": 2024
+  },
+  "LINK": {
+    "month": 1,
+    "year": 2019
+  },
+  "TNSR": {
+    "month": 4,
+    "year": 2024
+  },
+  "CFX": {
+    "month": 3,
+    "year": 2021
+  },
+  "OP": {
+    "month": 6,
+    "year": 2022
+  },
+  "SHIB": {
+    "month": 5,
+    "year": 2021
+  },
+  "ATOM": {
+    "month": 4,
+    "year": 2019
+  },
+  "GALA": {
+    "month": 9,
+    "year": 2021
+  },
+  "FIL": {
+    "month": 10,
+    "year": 2020
+  },
+  "MATIC": {
+    "month": 4,
+    "year": 2019
+  },
+  "ONE": {
+    "month": 6,
+    "year": 2019
+  },
+  "ENS": {
+    "month": 11,
+    "year": 2021
+  },
+  "BB": {
+    "month": 5,
+    "year": 2024
+  },
+  "ETH": {
+    "month": 8,
+    "year": 2017
+  },
+  "YGG": {
+    "month": 9,
+    "year": 2021
+  },
+  "SAGA": {
+    "month": 4,
+    "year": 2024
+  },
+  "1000SATS": {
+    "month": 12,
+    "year": 2023
+  },
+  "FTM": {
+    "month": 6,
+    "year": 2019
+  },
+  "XLM": {
+    "month": 5,
+    "year": 2018
+  },
+  "CKB": {
+    "month": 1,
+    "year": 2021
+  },
+  "NOT": {
+    "month": 5,
+    "year": 2024
+  },
+  "LDO": {
+    "month": 5,
+    "year": 2022
+  },
+  "PENDLE": {
+    "month": 7,
+    "year": 2023
+  },
+  "BCH": {
+    "month": 11,
+    "year": 2019
+  },
+  "BTTC": {
+    "month": 1,
+    "year": 2022
+  },
+  "PHB": {
+    "month": 11,
+    "year": 2022
+  },
+  "TRB": {
+    "month": 8,
+    "year": 2020
+  },
+  "TFUEL": {
+    "month": 5,
+    "year": 2019
+  },
+  "BTC": {
+    "month": 8,
+    "year": 2017
+  },
+  "ALT": {
+    "month": 1,
+    "year": 2024
+  },
+  "RUNE": {
+    "month": 9,
+    "year": 2020
+  },
+  "STRK": {
+    "month": 2,
+    "year": 2024
+  },
+  "BNB": {
+    "month": 11,
+    "year": 2017
+  },
+  "LTC": {
+    "month": 12,
+    "year": 2017
+  },
+  "ORDI": {
+    "month": 11,
+    "year": 2023
+  },
+  "WLD": {
+    "month": 7,
+    "year": 2023
+  },
+  "ALGO": {
+    "month": 6,
+    "year": 2019
+  },
+  "DOT": {
+    "month": 8,
+    "year": 2020
+  },
+  "FET": {
+    "month": 2,
+    "year": 2019
+  },
+  "JUP": {
+    "month": 1,
+    "year": 2024
+  },
+  "JTO": {
+    "month": 12,
+    "year": 2023
+  },
+  "BONK": {
+    "month": 12,
+    "year": 2023
+  },
+  "AR": {
+    "month": 5,
+    "year": 2021
+  },
+  "DUSK": {
+    "month": 7,
+    "year": 2019
+  },
+  "ARB": {
+    "month": 3,
+    "year": 2023
+  },
+  "ADA": {
+    "month": 4,
+    "year": 2018
+  }
+}

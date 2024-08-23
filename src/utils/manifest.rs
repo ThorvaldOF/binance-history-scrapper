@@ -45,7 +45,7 @@ impl Manifest {
     pub fn save(&mut self) -> std::io::Result<()> {
         self.concat_down_times();
         let json = serde_json::to_string_pretty(&self)?;
-        let dir_path = format!("./binance_data/results/{}", self.granularity);
+        let dir_path = format!("./binance_data/output/{}", self.granularity);
         fs::create_dir_all(&dir_path)?;
         let mut file = File::create(format!("{}/manifest.json", dir_path))?;
         file.write_all(json.as_bytes())?;
