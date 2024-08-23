@@ -4,7 +4,7 @@ use crate::utils::month_year::MonthYear;
 pub const STABLE_COIN: &str = "USDT";
 const LOCAL_PATH: &str = "./binance_data/";
 const DOWNLOADS_PATH: &str = "downloads/";
-const RESULTS_PATH: &str = "results/";
+const OUTPUT_PATH: &str = "output/";
 
 
 pub struct AssetFile {
@@ -37,13 +37,13 @@ impl AssetFile {
         self.get_local_directory(DOWNLOADS_PATH)
     }
     pub fn get_extract_directory(&self) -> String {
-        format!("{}{}{}/", LOCAL_PATH, RESULTS_PATH, self.granularity)
+        format!("{}{}{}/", LOCAL_PATH, OUTPUT_PATH, self.granularity)
     }
     pub fn get_result_file_path(&self) -> String {
         Self::get_result_file_path_from_values(&self.granularity, &self.asset)
     }
     pub fn get_result_file_path_from_values(granularity: &str, asset: &str) -> String {
-        format!("{}{}{}/{}{}.bin", LOCAL_PATH, RESULTS_PATH, granularity, asset, STABLE_COIN)
+        format!("{}{}{}/{}{}.bin", LOCAL_PATH, OUTPUT_PATH, granularity, asset, STABLE_COIN)
     }
 
     pub fn get_full_file_name(&self, extension: &str) -> String {
